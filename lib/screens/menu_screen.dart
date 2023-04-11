@@ -1,10 +1,39 @@
 import 'package:flutter/material.dart';
+import 'package:secure_messenger/screens/receive_screen.dart';
+import 'package:secure_messenger/screens/send_screen.dart';
 
 class MenuScreen extends StatelessWidget {
   const MenuScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const Placeholder();
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Secure Messenger"),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pushNamed(SendScreen.routeName),
+              style: ElevatedButton.styleFrom(padding: const EdgeInsets.all(15)),
+              child: Text(
+                "Wyślij wiadomość",
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pushNamed(ReceiveScreen.routeName),
+              style: ElevatedButton.styleFrom(padding: const EdgeInsets.all(15)),
+              child: Text(
+                "Odbierz wiadomość",
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
