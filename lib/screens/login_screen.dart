@@ -8,6 +8,7 @@ import 'package:secure_messenger/tmp.dart';
 
 
 import '../models/session.dart';
+import '../models/rsa_key_helper.dart';
 
 
 
@@ -47,9 +48,10 @@ class _LoginScreenState extends State<LoginScreen> {
         print('Addr: ${addr}');
       }
     }
-  var keyPair = generateRSAkeyPair(exampleSecureRandom());
-  print(encodePublicKeyToPem(keyPair.publicKey));
-  
+  RsaKeyHelper rsaKeyHelper = RsaKeyHelper();
+  var keyPair = rsaKeyHelper.generateRSAkeyPair(rsaKeyHelper.exampleSecureRandom());
+  rsaKeyHelper.saveKeysToFiles(keyPair);
+  rsaKeyHelper.loadKeysFromFiles();
   });
   if (_controller.text.trim() == "xd") {
     // ? dziwne ale wychodzi na to ze menu jest by default na stacku pod loginem
