@@ -19,7 +19,7 @@ class MenuScreen extends StatelessWidget {
               onPressed: () => Navigator.of(context).pushNamed(SendScreen.routeName),
               style: ElevatedButton.styleFrom(padding: const EdgeInsets.all(15)),
               child: Text(
-                "Wyślij wiadomość",
+                "Initialize connection",
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white),
               ),
             ),
@@ -27,7 +27,7 @@ class MenuScreen extends StatelessWidget {
               onPressed: () => Navigator.of(context).pushNamed(ReceiveScreen.routeName),
               style: ElevatedButton.styleFrom(padding: const EdgeInsets.all(15)),
               child: Text(
-                "Odbierz wiadomość",
+                "Listen for connections",
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white),
               ),
             ),
