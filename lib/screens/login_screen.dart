@@ -10,22 +10,32 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  late final TextEditingController _controller;
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _passwordController;
+
+  bool _isLogin = true;
+  String _login = '';
+  String _password = '';
 
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController();
+    _passwordController = TextEditingController();
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
   void _submit() {
-    if (_controller.text.trim() == "xd") {
+    if (!_formKey.currentState!.validate()) {
+      return; //nie wyslo
+    }
+    _formKey.currentState!.save();
+
+    if (_password == "xdxd") {
       // ? dziwne ale wychodzi na to ze menu jest by default na stacku pod loginem
       Navigator.of(context).pop();
     }
@@ -42,22 +52,70 @@ class _LoginScreenState extends State<LoginScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                "Podaj hasło:",
+                "Secure Messenger",
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                  child: TextField(
-                    obscureText: true,
-                    controller: _controller,
-                    onSubmitted: (_) => _submit(),
-                    textInputAction: TextInputAction.done,
-                    keyboardType: TextInputType.visiblePassword,
-                    decoration: const InputDecoration(
-                      hintText: "Hasło",
+              Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    CustomField(
+                      visible: !_isLogin,
+                      child: TextFormField(
+                        enabled: !_isLogin,
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          hintText: "Username",
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty || value.characters.length < 4) {
+                            return "Enter at least 4 characters";
+                          }
+                          return null;
+                        },
+                        onSaved: (newValue) {
+                          _login = newValue!;
+                        },
+                      ),
                     ),
-                  ),
+                    CustomField(
+                      child: TextFormField(
+                        enabled: true,
+                        controller: _passwordController,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          hintText: "Password",
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty || value.characters.length < 4) {
+                            return "Enter at least 4 characters";
+                          }
+                          return null;
+                        },
+                        onSaved: (newValue) {
+                          _password = newValue!;
+                        },
+                      ),
+                    ),
+                    CustomField(
+                      visible: !_isLogin,
+                      child: TextFormField(
+                        enabled: !_isLogin,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          hintText: "Repeat password",
+                        ),
+                        validator: (value) {
+                          if (_passwordController.text != value) {
+                            return "Passwords do not match";
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ),
               ElevatedButton(
@@ -67,10 +125,41 @@ class _LoginScreenState extends State<LoginScreen> {
                   foregroundColor: Colors.black,
                   elevation: 10,
                 ),
-                child: const Text("Zaloguj"),
+                child: Text(_isLogin ? "Log in" : "Register"),
+              ),
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    _isLogin = !_isLogin;
+                  });
+                },
+                child: Text(
+                  _isLogin ? "I want to register." : "I want to log in.",
+                  style: const TextStyle(color: Colors.black),
+                ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class CustomField extends StatelessWidget {
+  final Widget child;
+  final bool visible;
+
+  const CustomField({this.visible = true, required this.child, super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: BoxConstraints(maxHeight: visible ? double.infinity : 0),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          child: child,
         ),
       ),
     );
