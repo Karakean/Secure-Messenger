@@ -1,4 +1,17 @@
+import 'dart:io';
+import 'dart:math';
+
+
+
 import 'package:flutter/material.dart';
+import 'package:secure_messenger/tmp.dart';
+
+
+import '../models/session.dart';
+import '../models/rsa_key_helper.dart';
+
+
+
 
 class LoginScreen extends StatefulWidget {
   static const routeName = "/login";
@@ -8,6 +21,8 @@ class LoginScreen extends StatefulWidget {
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
+
+
 
 class _LoginScreenState extends State<LoginScreen> {
   late final TextEditingController _controller;
@@ -25,11 +40,25 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _submit() {
-    if (_controller.text.trim() == "xd") {
-      // ? dziwne ale wychodzi na to ze menu jest by default na stacku pod loginem
-      Navigator.of(context).pop();
+  
+  NetworkInterface.list().then((interfaces) {
+    for (var interface in interfaces) {
+      print('Name: ${interface.name}');
+      for (var addr in interface.addresses) {
+        print('Addr: ${addr}');
+      }
     }
+  RsaKeyHelper rsaKeyHelper = RsaKeyHelper();
+  var keyPair = rsaKeyHelper.generateRSAkeyPair(rsaKeyHelper.exampleSecureRandom());
+  rsaKeyHelper.saveKeysToFiles(keyPair);
+  rsaKeyHelper.loadKeysFromFiles();
+  });
+  if (_controller.text.trim() == "xd") {
+    // ? dziwne ale wychodzi na to ze menu jest by default na stacku pod loginem
+    Navigator.of(context).pop();
   }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +71,15 @@ class _LoginScreenState extends State<LoginScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                "Podaj hasło:",
+                "Select an interface:",
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              Text(
+                "Select an interface:",
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              Text(
+                "Enter your password:",
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               Card(
@@ -55,7 +92,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     textInputAction: TextInputAction.done,
                     keyboardType: TextInputType.visiblePassword,
                     decoration: const InputDecoration(
-                      hintText: "Hasło",
+                      hintText: "Password",
                     ),
                   ),
                 ),
@@ -67,7 +104,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   foregroundColor: Colors.black,
                   elevation: 10,
                 ),
-                child: const Text("Zaloguj"),
+                child: const Text("Submit"),
               ),
             ],
           ),
