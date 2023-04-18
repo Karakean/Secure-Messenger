@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+import 'package:encrypt/encrypt.dart' as encrypt;
 
 import 'package:flutter/material.dart';
 import 'package:pointycastle/pointycastle.dart' as rsa;
@@ -40,6 +42,28 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _submit() {
+    // final sessionKey = encrypt.Key.fromSecureRandom(32);
+    // final iv = encrypt.IV.fromSecureRandom(16);
+    // final encrypter = encrypt.Encrypter(encrypt.AES(sessionKey, mode: encrypt.AESMode.cbc));
+    
+    // final plaintext = 'Hello, world!';
+    // final encrypted = encrypter.encrypt(plaintext, iv: iv);
+    
+    // final encodedIv = base64.encode(iv.bytes);
+    // final encodedEncrypted = base64.encode(encrypted.bytes);
+    
+    // print('IV: $encodedIv');
+    // print('Encrypted data: $encodedEncrypted');
+
+    UserSession userSession = UserSession();
+    encrypt.IV hiv = encrypt.IV.fromLength(16);
+    encrypt.Encrypted xd = userSession.encrypter.encrypt("XDDD", iv: hiv);
+    String tmp = userSession.sessionKey.base64;
+    print("LOL1: " + tmp);
+    encrypt.Key kkk = encrypt.Key.fromBase64(tmp);
+    print("LOL2: " + kkk.base64);
+    encrypt.Encrypter eee = encrypt.Encrypter(encrypt.AES(kkk, mode: encrypt.AESMode.cbc));
+    print(eee.decrypt(xd, iv: hiv));
     NetworkInterface.list().then((interfaces) {
       for (var interface in interfaces) {
         print('Name: ${interface.name}');

@@ -5,9 +5,16 @@ import 'package:flutter/material.dart';
 import 'package:pointycastle/pointycastle.dart';
 
 class UserSession {
-  final iv = encrypt.IV.fromLength(23);
 
-  final encrypter = encrypt.Encrypter(encrypt.AES(encrypt.Key.fromSecureRandom(32)));
+  //final encrypter = encrypt.Encrypter(encrypt.AES(encrypt.Key.fromSecureRandom(32)));
+  late encrypt.IV iv;
+  late encrypt.Key sessionKey;
+  late encrypt.Encrypter encrypter;
+  UserSession() {
+    iv = encrypt.IV.fromLength(16);
+    sessionKey = encrypt.Key.fromSecureRandom(32);
+    encrypter = encrypt.Encrypter(encrypt.AES(sessionKey, mode: encrypt.AESMode.cbc)); //TODO change cbc to user choice cbc or ecb
+  }
 }
 
 class UserData with ChangeNotifier {

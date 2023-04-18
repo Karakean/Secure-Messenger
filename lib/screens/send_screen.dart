@@ -3,6 +3,12 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import 'package:encrypt/encrypt.dart' as encrypt;
+
+import '../models/rsa_key_helper.dart';
+import '../models/user.dart';
+import 'package:pointycastle/pointycastle.dart';
+
 class SendScreen extends StatefulWidget {
   static const routeName = "/send";
 
@@ -34,10 +40,14 @@ class _SendScreenState extends State<SendScreen> {
   void connectToServer() async {
     var socket = await Socket.connect(destination, 2137); //TODO change to receiver IP
     var message = await socket.first;
-    print('PUBLIC KEY $message'); //TODO take server's public key
-    socket.writeln('ENCRYPTED SESSION KEY'); //TODO send session key encrypted with session key
-    message = await socket.first; //maybe handle some message xd
+    RsaKeyHelper rsaKeyHelper = RsaKeyHelper(); //TODO singleton
+    RSAPublicKey serverPublicKey = rsaKeyHelper.parsePublicKeyFromPem(String.fromCharCodes(message));
+    UserSession userSession = UserSession(); //initialize a few things including session key
+    socket.writeln(rsaKeyHelper.encrypt(userSession.sessionKey.base64, serverPublicKey)); //DONE send session key encrypted with server public key
+    message = await socket.first; //maybe handle first message xd
     print('Server said: $message');
+
+    
     //handleMessages(socket);
     disconnectFromServer(socket);
 
