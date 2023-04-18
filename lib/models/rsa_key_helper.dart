@@ -8,35 +8,32 @@ import 'package:pointycastle/asymmetric/api.dart';
 import "package:pointycastle/export.dart";
 
 class RsaKeyHelper {
-  AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey> generateRSAkeyPair(
-    SecureRandom secureRandom,
-    {int bitLength = 2048}) {
-  // Create an RSA key generator and initialize it
+  AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey> generateRSAkeyPair(SecureRandom secureRandom,
+      {int bitLength = 2048}) {
+    // Create an RSA key generator and initialize it
 
-  // final keyGen = KeyGenerator('RSA'); // Get using registry
-  final keyGen = RSAKeyGenerator();
+    // final keyGen = KeyGenerator('RSA'); // Get using registry
+    final keyGen = RSAKeyGenerator();
 
-  keyGen.init(ParametersWithRandom(
-      RSAKeyGeneratorParameters(BigInt.parse('65537'), bitLength, 64),
-      secureRandom));
+    keyGen.init(ParametersWithRandom(
+        RSAKeyGeneratorParameters(BigInt.parse('65537'), bitLength, 64), secureRandom));
 
-  // Use the generator
+    // Use the generator
 
-  final pair = keyGen.generateKeyPair();
+    final pair = keyGen.generateKeyPair();
 
-  // Cast the generated key pair into the RSA key types
+    // Cast the generated key pair into the RSA key types
 
-  final myPublic = pair.publicKey as RSAPublicKey;
-  final myPrivate = pair.privateKey as RSAPrivateKey;
+    final myPublic = pair.publicKey as RSAPublicKey;
+    final myPrivate = pair.privateKey as RSAPrivateKey;
 
-  return AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey>(myPublic, myPrivate);
+    return AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey>(myPublic, myPrivate);
   }
 
   SecureRandom exampleSecureRandom() {
-  final secureRandom = SecureRandom('Fortuna')
-    ..seed(KeyParameter(
-        Platform.instance.platformEntropySource().getBytes(32)));
-  return secureRandom;
+    final secureRandom = SecureRandom('Fortuna')
+      ..seed(KeyParameter(Platform.instance.platformEntropySource().getBytes(32)));
+    return secureRandom;
   }
 
   BigInt validateBigIntValue(BigInt? value) {
@@ -49,13 +46,14 @@ class RsaKeyHelper {
 
   encodePublicKeyToPem(RSAPublicKey publicKey) {
     var algorithmSeq = ASN1Sequence();
-    var algorithmAsn1Obj = ASN1Object.fromBytes(Uint8List.fromList([0x6, 0x9, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0xd, 0x1, 0x1, 0x1]));
+    var algorithmAsn1Obj = ASN1Object.fromBytes(
+        Uint8List.fromList([0x6, 0x9, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0xd, 0x1, 0x1, 0x1]));
     var paramsAsn1Obj = ASN1Object.fromBytes(Uint8List.fromList([0x5, 0x0]));
     algorithmSeq.add(algorithmAsn1Obj);
     algorithmSeq.add(paramsAsn1Obj);
 
     var publicKeySeq = ASN1Sequence();
-    
+
     publicKeySeq.add(ASN1Integer(validateBigIntValue(publicKey.modulus)));
     publicKeySeq.add(ASN1Integer(validateBigIntValue(publicKey.exponent)));
     var publicKeySeqBitString = ASN1BitString(Uint8List.fromList(publicKeySeq.encodedBytes));
@@ -72,7 +70,8 @@ class RsaKeyHelper {
     var version = ASN1Integer(BigInt.from(0));
 
     var algorithmSeq = ASN1Sequence();
-    var algorithmAsn1Obj = ASN1Object.fromBytes(Uint8List.fromList([0x6, 0x9, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0xd, 0x1, 0x1, 0x1]));
+    var algorithmAsn1Obj = ASN1Object.fromBytes(
+        Uint8List.fromList([0x6, 0x9, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0xd, 0x1, 0x1, 0x1]));
     var paramsAsn1Obj = ASN1Object.fromBytes(Uint8List.fromList([0x5, 0x0]));
     algorithmSeq.add(algorithmAsn1Obj);
     algorithmSeq.add(paramsAsn1Obj);
@@ -83,9 +82,11 @@ class RsaKeyHelper {
     var privateExponent = ASN1Integer(validateBigIntValue(privateKey.privateExponent));
     var p = ASN1Integer(validateBigIntValue(privateKey.p));
     var q = ASN1Integer(validateBigIntValue(privateKey.q));
-    var dP = validateBigIntValue(privateKey.privateExponent) % (validateBigIntValue(privateKey.p) - BigInt.from(1));
+    var dP = validateBigIntValue(privateKey.privateExponent) %
+        (validateBigIntValue(privateKey.p) - BigInt.from(1));
     var exp1 = ASN1Integer(dP);
-    var dQ = validateBigIntValue(privateKey.privateExponent) % (validateBigIntValue(privateKey.q) - BigInt.from(1));
+    var dQ = validateBigIntValue(privateKey.privateExponent) %
+        (validateBigIntValue(privateKey.q) - BigInt.from(1));
     var exp2 = ASN1Integer(dQ);
     var iQ = validateBigIntValue(privateKey.q).modInverse(validateBigIntValue(privateKey.p));
     var co = ASN1Integer(iQ);
@@ -123,7 +124,7 @@ class RsaKeyHelper {
       "-----END PGP PUBLIC KEY BLOCK-----",
       "-----END PGP PRIVATE KEY BLOCK-----",
     ];
-    bool isOpenPgp = pem.indexOf('BEGIN PGP') != -1;
+    bool isOpenPgp = pem.contains('BEGIN PGP');
 
     for (var s in startsWith) {
       if (pem.startsWith(s)) {
@@ -149,16 +150,14 @@ class RsaKeyHelper {
   }
 
   String encrypt(String plaintext, RSAPublicKey publicKey) {
-    var cipher = RSAEngine()
-      ..init(true, PublicKeyParameter<RSAPublicKey>(publicKey));
+    var cipher = RSAEngine()..init(true, PublicKeyParameter<RSAPublicKey>(publicKey));
     var cipherText = cipher.process(Uint8List.fromList(plaintext.codeUnits));
 
     return String.fromCharCodes(cipherText);
   }
 
   String decrypt(String ciphertext, RSAPrivateKey privateKey) {
-    var cipher = RSAEngine()
-      ..init(false, PrivateKeyParameter<RSAPrivateKey>(privateKey));
+    var cipher = RSAEngine()..init(false, PrivateKeyParameter<RSAPrivateKey>(privateKey));
     var decrypted = cipher.process(Uint8List.fromList(ciphertext.codeUnits));
 
     return String.fromCharCodes(decrypted);
@@ -175,10 +174,8 @@ class RsaKeyHelper {
     var modulus = publicKeySeq.elements[0] as ASN1Integer;
     var exponent = publicKeySeq.elements[1] as ASN1Integer;
 
-    RSAPublicKey rsaPublicKey = RSAPublicKey(
-      modulus.valueAsBigInteger!,
-      exponent.valueAsBigInteger!
-    );
+    RSAPublicKey rsaPublicKey =
+        RSAPublicKey(modulus.valueAsBigInteger!, exponent.valueAsBigInteger!);
 
     return rsaPublicKey;
   }
@@ -204,12 +201,8 @@ class RsaKeyHelper {
     var exp2 = pkSeq.elements[7] as ASN1Integer;
     var co = pkSeq.elements[8] as ASN1Integer;
 
-    RSAPrivateKey rsaPrivateKey = RSAPrivateKey(
-      modulus.valueAsBigInteger!,
-      privateExponent.valueAsBigInteger!,
-      p.valueAsBigInteger,
-      q.valueAsBigInteger
-    );
+    RSAPrivateKey rsaPrivateKey = RSAPrivateKey(modulus.valueAsBigInteger!,
+        privateExponent.valueAsBigInteger!, p.valueAsBigInteger, q.valueAsBigInteger);
 
     return rsaPrivateKey;
   }
@@ -229,10 +222,10 @@ class RsaKeyHelper {
     privateKeyFile.writeAsStringSync(encodePrivateKeyToPem(keyPair.privateKey));
   }
 
-  loadKeysFromFiles() {
+  AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey>? loadKeysFromFiles() {
     final publicKeyFile = File('public/key.pem');
     final privateKeyFile = File('private/key.pem');
-    if(publicKeyFile.existsSync() && privateKeyFile.existsSync()) {
+    if (publicKeyFile.existsSync() && privateKeyFile.existsSync()) {
       var publicKey = parsePublicKeyFromPem(publicKeyFile.readAsStringSync());
       var privateKey = parsePrivateKeyFromPem(privateKeyFile.readAsStringSync());
       return AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey>(publicKey, privateKey);
