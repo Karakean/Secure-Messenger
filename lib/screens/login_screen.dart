@@ -2,9 +2,11 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:pointycastle/pointycastle.dart' as rsa;
+import 'package:provider/provider.dart';
 import 'package:secure_messenger/tmp.dart';
 
-import '../models/session.dart';
+import '../models/user.dart';
 import '../models/rsa_key_helper.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -19,6 +21,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _passwordController;
+  final RsaKeyHelper rsaKeyHelper = RsaKeyHelper();
 
   bool _isLogin = true;
   String _login = '';
@@ -41,13 +44,9 @@ class _LoginScreenState extends State<LoginScreen> {
       for (var interface in interfaces) {
         print('Name: ${interface.name}');
         for (var addr in interface.addresses) {
-          print('Addr: ${addr}');
+          print('Addr: $addr');
         }
       }
-      RsaKeyHelper rsaKeyHelper = RsaKeyHelper();
-      var keyPair = rsaKeyHelper.generateRSAkeyPair(rsaKeyHelper.exampleSecureRandom());
-      rsaKeyHelper.saveKeysToFiles(keyPair);
-      rsaKeyHelper.loadKeysFromFiles();
     });
 
     if (!_formKey.currentState!.validate()) {
@@ -55,10 +54,27 @@ class _LoginScreenState extends State<LoginScreen> {
     }
     _formKey.currentState!.save();
 
-    if (_password == "xdxd") {
-      // ? dziwne ale wychodzi na to ze menu jest by default na stacku pod loginem
-      Navigator.of(context).pop();
+    if (_password != "xdxd") {
+      return;
     }
+
+    rsa.AsymmetricKeyPair<rsa.RSAPublicKey, rsa.RSAPrivateKey>? keyPair;
+    if (_isLogin) {
+      keyPair = rsaKeyHelper.loadKeysFromFiles();
+      if (keyPair == null) {
+        print("brak klucza xd");
+        return;
+      }
+    } else {
+      keyPair = rsaKeyHelper.generateRSAkeyPair(rsaKeyHelper.exampleSecureRandom());
+      rsaKeyHelper.saveKeysToFiles(keyPair);
+    }
+
+    final userData = context.read<UserData>();
+    userData.keyPair = keyPair;
+
+    // ? dziwne ale wychodzi na to ze menu jest by default na stacku pod loginem
+    Navigator.of(context).pop();
   }
 
   @override
@@ -88,6 +104,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           hintText: "Username",
                         ),
                         validator: (value) {
+                          if (_isLogin) return null;
                           if (value == null || value.isEmpty || value.characters.length < 4) {
                             return "Enter at least 4 characters";
                           }
@@ -128,6 +145,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           hintText: "Repeat password",
                         ),
                         validator: (value) {
+                          if (_isLogin) return null;
                           if (_passwordController.text != value) {
                             return "Passwords do not match";
                           }

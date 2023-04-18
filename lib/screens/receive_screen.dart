@@ -2,9 +2,29 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:secure_messenger/models/rsa_key_helper.dart';
+import 'package:secure_messenger/models/user.dart';
 
-class ReceiveScreen extends StatelessWidget {
+class ReceiveScreen extends StatefulWidget {
   static const routeName = "/receive";
+
+  const ReceiveScreen({super.key});
+
+  @override
+  State<ReceiveScreen> createState() => _ReceiveScreenState();
+}
+
+class _ReceiveScreenState extends State<ReceiveScreen> {
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      final userData = context.read<UserData>();
+      initializeServer(userData);
+    });
+  }
 
   void closeConnection(ServerSocket server, Socket socket) {
     socket.close();
@@ -12,7 +32,7 @@ class ReceiveScreen extends StatelessWidget {
   }
 
   void handleMessages(Socket socket) async {
-    while(true) {
+    while (true) {
       var message = await socket.first;
       print(message);
       if (utf8.decode(message).trim() == "QU17") {
@@ -21,18 +41,19 @@ class ReceiveScreen extends StatelessWidget {
     }
   }
 
-  void initializeServer() async {
-    var server = await ServerSocket.bind('127.0.0.1', 2137); //TODO change to chosen IP
+  void initializeServer(UserData userData) async {
+    final RsaKeyHelper rsaKeyHelper = RsaKeyHelper();
+
+    var server = await ServerSocket.bind(userData.ipAddr, 2137); //TODO change to chosen IP
     var socket = await server.first;
-    socket.writeln('My public key is XYZ.'); //TODO send public key
+    socket.writeln(
+        rsaKeyHelper.encodePublicKeyToPem(userData.keyPair!.publicKey)); //TODO send public key
     var response = await socket.first;
     print('Session key $response'); //TODO handle response which should be encoded session key
     socket.writeln('Hello there!'); //maybe write some ACK message ncoded with session key? idk
     //handleMessages(socket);
     closeConnection(server, socket);
   }
-
-  const ReceiveScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
