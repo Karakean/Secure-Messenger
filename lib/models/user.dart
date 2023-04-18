@@ -4,17 +4,32 @@ import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:flutter/material.dart';
 import 'package:pointycastle/pointycastle.dart';
 
-class UserSession {
+class UserSession with ChangeNotifier {
+  encrypt.IV? _iv;
+  encrypt.Key? _sessionKey;
+  //encrypt.Encrypter encrypter;
 
-  //final encrypter = encrypt.Encrypter(encrypt.AES(encrypt.Key.fromSecureRandom(32)));
-  late encrypt.IV iv;
-  late encrypt.Key sessionKey;
-  late encrypt.Encrypter encrypter;
-  UserSession() {
-    iv = encrypt.IV.fromLength(16);
-    sessionKey = encrypt.Key.fromSecureRandom(32);
-    encrypter = encrypt.Encrypter(encrypt.AES(sessionKey, mode: encrypt.AESMode.cbc)); //TODO change cbc to user choice cbc or ecb
+  UserSession();
+
+  encrypt.IV? get iv => _iv;
+  encrypt.Key? get sessionKey => _sessionKey;
+
+  set sessionKey(encrypt.Key? newKey) {
+    _sessionKey = newKey;
+    notifyListeners();
   }
+
+  void generateIV() {
+    _iv = encrypt.IV.fromLength(16);
+    notifyListeners();
+  }
+
+  void generateSessionKey() {
+    _sessionKey = encrypt.Key.fromSecureRandom(32);
+    notifyListeners();
+  }
+
+  //encrypter = encrypt.Encrypter(encrypt.AES(sessionKey, mode: encrypt.AESMode.cbc)); //TODO change cbc to user choice cbc or ecb
 }
 
 class UserData with ChangeNotifier {

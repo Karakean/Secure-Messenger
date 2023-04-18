@@ -16,8 +16,15 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => UserData(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (context) => UserData(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => UserSession(),
+        ),
+      ],
       child: MaterialApp(
         title: 'Secure Messenger',
         theme: ThemeData.light(),

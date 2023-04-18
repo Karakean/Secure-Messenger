@@ -1,12 +1,8 @@
-import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
-import 'package:encrypt/encrypt.dart' as encrypt;
 
 import 'package:flutter/material.dart';
 import 'package:pointycastle/pointycastle.dart' as rsa;
 import 'package:provider/provider.dart';
-import 'package:secure_messenger/tmp.dart';
 
 import '../models/user.dart';
 import '../models/rsa_key_helper.dart';
@@ -41,38 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _submit() {
-    // final sessionKey = encrypt.Key.fromSecureRandom(32);
-    // final iv = encrypt.IV.fromSecureRandom(16);
-    // final encrypter = encrypt.Encrypter(encrypt.AES(sessionKey, mode: encrypt.AESMode.cbc));
-    
-    // final plaintext = 'Hello, world!';
-    // final encrypted = encrypter.encrypt(plaintext, iv: iv);
-    
-    // final encodedIv = base64.encode(iv.bytes);
-    // final encodedEncrypted = base64.encode(encrypted.bytes);
-    
-    // print('IV: $encodedIv');
-    // print('Encrypted data: $encodedEncrypted');
-
-    UserSession userSession = UserSession();
-    encrypt.IV hiv = encrypt.IV.fromLength(16);
-    encrypt.Encrypted xd = userSession.encrypter.encrypt("XDDD", iv: hiv);
-    String tmp = userSession.sessionKey.base64;
-    print("LOL1: " + tmp);
-    encrypt.Key kkk = encrypt.Key.fromBase64(tmp);
-    print("LOL2: " + kkk.base64);
-    encrypt.Encrypter eee = encrypt.Encrypter(encrypt.AES(kkk, mode: encrypt.AESMode.cbc));
-    print(eee.decrypt(xd, iv: hiv));
-    NetworkInterface.list().then((interfaces) {
-      for (var interface in interfaces) {
-        print('Name: ${interface.name}');
-        for (var addr in interface.addresses) {
-          print('Addr: $addr');
-        }
-      }
-    });
-
+  void _submit() async {
     if (!_formKey.currentState!.validate()) {
       return; //nie wyslo
     }
@@ -84,21 +49,23 @@ class _LoginScreenState extends State<LoginScreen> {
 
     rsa.AsymmetricKeyPair<rsa.RSAPublicKey, rsa.RSAPrivateKey>? keyPair;
     if (_isLogin) {
-      keyPair = rsaKeyHelper.loadKeysFromFiles();
+      keyPair = await rsaKeyHelper.loadKeysFromFiles();
       if (keyPair == null) {
         print("brak klucza xd");
         return;
       }
     } else {
       keyPair = rsaKeyHelper.generateRSAkeyPair(rsaKeyHelper.exampleSecureRandom());
-      rsaKeyHelper.saveKeysToFiles(keyPair);
+      await rsaKeyHelper.saveKeysToFiles(keyPair);
     }
 
-    final userData = context.read<UserData>();
-    userData.keyPair = keyPair;
+    if (context.mounted) {
+      final userData = context.read<UserData>();
+      userData.keyPair = keyPair;
 
-    // ? dziwne ale wychodzi na to ze menu jest by default na stacku pod loginem
-    Navigator.of(context).pop();
+      // ? dziwne ale wychodzi na to ze menu jest by default na stacku pod loginem
+      Navigator.of(context).pop();
+    }
   }
 
   @override
