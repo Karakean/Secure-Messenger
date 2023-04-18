@@ -1,7 +1,10 @@
+// ignore_for_file: unused_local_variable, implementation_imports, unnecessary_import
+
 import 'dart:convert';
 import 'dart:typed_data';
 
 import "package:asn1lib/asn1lib.dart";
+import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:pointycastle/src/platform_check/platform_check.dart';
 import 'package:pointycastle/asymmetric/api.dart';
@@ -207,27 +210,41 @@ class RsaKeyHelper {
     return rsaPrivateKey;
   }
 
-  void saveKeysToFiles(AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey> keyPair) {
-    final publicDir = Directory('public');
+  Future<String> get _localPath async {
+    final directory = await getApplicationDocumentsDirectory();
+
+    return directory.path;
+  }
+
+  Future<void> saveKeysToFiles(AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey> keyPair) async {
+    final path = await _localPath;
+    print(path);
+    print("xd");
+
+    final publicDir = Directory('$path/public');
     if (!publicDir.existsSync()) {
       publicDir.createSync();
     }
-    final privateDir = Directory('private');
+    final privateDir = Directory('$path/private');
     if (!privateDir.existsSync()) {
       privateDir.createSync();
     }
-    final publicKeyFile = File('public/key.pem');
-    publicKeyFile.writeAsStringSync(encodePublicKeyToPem(keyPair.publicKey));
-    final privateKeyFile = File('private/key.pem');
-    privateKeyFile.writeAsStringSync(encodePrivateKeyToPem(keyPair.privateKey));
+
+    final publicKeyFile = File('$path/public/key.pem');
+    publicKeyFile.writeAsString(encodePublicKeyToPem(keyPair.publicKey));
+    final privateKeyFile = File('$path/private/key.pem');
+    privateKeyFile.writeAsString(encodePrivateKeyToPem(keyPair.privateKey));
   }
 
-  AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey>? loadKeysFromFiles() {
-    final publicKeyFile = File('public/key.pem');
-    final privateKeyFile = File('private/key.pem');
-    if (publicKeyFile.existsSync() && privateKeyFile.existsSync()) {
-      var publicKey = parsePublicKeyFromPem(publicKeyFile.readAsStringSync());
-      var privateKey = parsePrivateKeyFromPem(privateKeyFile.readAsStringSync());
+  Future<AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey>?> loadKeysFromFiles() async {
+    final path = await _localPath;
+    print(_localPath);
+
+    final publicKeyFile = File('$path/public/key.pem');
+    final privateKeyFile = File('$path/private/key.pem');
+    if (await publicKeyFile.exists() && await privateKeyFile.exists()) {
+      var publicKey = parsePublicKeyFromPem(await publicKeyFile.readAsString());
+      var privateKey = parsePrivateKeyFromPem(await privateKeyFile.readAsString());
       return AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey>(publicKey, privateKey);
     }
     return null;
