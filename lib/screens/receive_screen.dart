@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:secure_messenger/models/rsa_key_helper.dart';
 import 'package:secure_messenger/models/user.dart';
+import 'package:encrypt/encrypt.dart' as encrypt;
 
 class ReceiveScreen extends StatefulWidget {
   static const routeName = "/receive";
@@ -46,11 +47,10 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
 
     var server = await ServerSocket.bind(userData.ipAddr, 2137); //TODO change to chosen IP
     var socket = await server.first;
-    socket.writeln(
-        rsaKeyHelper.encodePublicKeyToPem(userData.keyPair!.publicKey)); //TODO send public key
-    var response = await socket.first;
-    print('Session key $response'); //TODO handle response which should be encoded session key
-    socket.writeln('Hello there!'); //maybe write some ACK message ncoded with session key? idk
+    socket.writeln(rsaKeyHelper.encodePublicKeyToPem(userData.keyPair!.publicKey)); //DONE send public key
+    var response = await socket.first; //session key encrypted with server public key
+    encrypt.Key sessionKey = encrypt.Key.fromBase64(rsaKeyHelper.decrypt(String.fromCharCodes(response), userData.keyPair!.privateKey)); //session key decrypted with server private key
+    socket.writeln('The Industrial Revolution and its consequences have been a disaster for the human race.'); //maybe write some ACK message ncoded with session key? idk
     //handleMessages(socket);
     closeConnection(server, socket);
   }
