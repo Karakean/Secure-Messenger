@@ -2,8 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import 'package:encrypt/encrypt.dart' as encrypt;
+//import 'package:encrypt/encrypt.dart' as encrypt;
 
 import '../models/rsa_key_helper.dart';
 import '../models/user.dart';
@@ -38,25 +39,28 @@ class _SendScreenState extends State<SendScreen> {
   }
 
   void connectToServer() async {
-    var socket = await Socket.connect(destination, 2137); //TODO change to receiver IP
-    var message = await socket.first;
-    RsaKeyHelper rsaKeyHelper = RsaKeyHelper(); //TODO singleton
-    RSAPublicKey serverPublicKey = rsaKeyHelper.parsePublicKeyFromPem(String.fromCharCodes(message));
-    UserSession userSession = UserSession(); //initialize a few things including session key
-    socket.writeln(rsaKeyHelper.encrypt(userSession.sessionKey.base64, serverPublicKey)); //DONE send session key encrypted with server public key
-    message = await socket.first; //maybe handle first message xd
-    print('Server said: $message');
+    var socket = await Socket.connect(destination, 2137);
 
-    
-    //handleMessages(socket);
-    disconnectFromServer(socket);
-
-    await socket.flush();
-    await socket.close();
+    // Listen for incoming messages from server
+    bool afterHandshake = false;
+    socket.listen((List<int> data) {
+      String message = utf8.decode(data);
+      print('Received message from server: $message');
+      if (!afterHandshake) {
+        RsaKeyHelper rsaKeyHelper = RsaKeyHelper(); //TODO singleton
+        RSAPublicKey serverPublicKey = rsaKeyHelper.parsePublicKeyFromPem(message);
+        UserSession userSession = context.read<UserSession>();
+        userSession.generateSessionKey();
+        print(userSession.sessionKey!.base64);
+        socket.write(rsaKeyHelper.encrypt(userSession.sessionKey!.base64, serverPublicKey));
+        afterHandshake = true;
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    UserSession userSession = context.watch<UserSession>();
     return Scaffold(
       appBar: AppBar(
         title: const Text("Initialize connection"),
@@ -65,7 +69,9 @@ class _SendScreenState extends State<SendScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const CircularProgressIndicator(),
+            userSession.sessionKey != null
+                ? Text("Your session key is: ${userSession.sessionKey!.base64}")
+                : const CircularProgressIndicator(),
             Text(
               "Waiting for the recipient to accept the connection...",
               style: Theme.of(context).textTheme.titleLarge,

@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -39,15 +38,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _submit() async {
-    NetworkInterface.list().then((interfaces) {
-      for (var interface in interfaces) {
-        print('Name: ${interface.name}');
-        for (var addr in interface.addresses) {
-          print('Addr: $addr');
-        }
-      }
-    });
-
     if (!_formKey.currentState!.validate()) {
       return; //nie wyslo
     }

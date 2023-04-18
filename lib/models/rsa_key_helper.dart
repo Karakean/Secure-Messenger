@@ -218,8 +218,6 @@ class RsaKeyHelper {
 
   Future<void> saveKeysToFiles(AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey> keyPair) async {
     final path = await _localPath;
-    print(path);
-    print("xd");
 
     final publicDir = Directory('$path/public');
     if (!publicDir.existsSync()) {
