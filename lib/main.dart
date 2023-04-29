@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:secure_messenger/models/user.dart';
 import 'package:secure_messenger/screens/chat_screen.dart';
 import 'package:secure_messenger/screens/login_screen.dart';
 import 'package:secure_messenger/screens/menu_screen.dart';
@@ -14,17 +16,27 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Secure Messenger',
-      theme: ThemeData.light(),
-      initialRoute: LoginScreen.routeName,
-      routes: {
-        "/": (context) => const MenuScreen(),
-        LoginScreen.routeName: (context) => const LoginScreen(),
-        SendScreen.routeName: (context) => const SendScreen(),
-        ReceiveScreen.routeName: (context) => const ReceiveScreen(),
-        ChatScreen.routeName: (context) => const ChatScreen(),
-      },
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (context) => UserData(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => UserSession(),
+        ),
+      ],
+      child: MaterialApp(
+        title: 'Secure Messenger',
+        theme: ThemeData.light(),
+        initialRoute: LoginScreen.routeName,
+        routes: {
+          "/": (context) => const MenuScreen(),
+          LoginScreen.routeName: (context) => const LoginScreen(),
+          SendScreen.routeName: (context) => const SendScreen(),
+          ReceiveScreen.routeName: (context) => const ReceiveScreen(),
+          ChatScreen.routeName: (context) => const ChatScreen(),
+        },
+      ),
     );
   }
 }
