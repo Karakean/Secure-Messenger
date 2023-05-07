@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:pointycastle/pointycastle.dart' as rsa;
 import 'package:provider/provider.dart';
@@ -22,6 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final RsaKeyHelper rsaKeyHelper = RsaKeyHelper();
 
   bool _isLogin = true;
+  // ignore: unused_field
   String _login = '';
   String _password = '';
 
