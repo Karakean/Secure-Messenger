@@ -36,5 +36,5 @@ class UserData with ChangeNotifier {
   AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey>? keyPair;
   String? username;
   NetworkInterface? interface;
-  InternetAddress? ipAddr = InternetAddress("192.168.0.8");
+  InternetAddress? ipAddr;
 }

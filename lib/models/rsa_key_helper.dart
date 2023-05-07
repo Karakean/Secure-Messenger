@@ -4,7 +4,7 @@ import 'dart:typed_data';
 
 import "package:asn1lib/asn1lib.dart";
 import 'package:encrypt/encrypt.dart' as encryptpackage;
-import 'package:path_provider/path_provider.dart';
+import 'package:secure_messenger/models/common.dart';
 import 'dart:io';
 // ignore: implementation_imports
 import 'package:pointycastle/src/platform_check/platform_check.dart';
@@ -224,25 +224,21 @@ class RsaKeyHelper {
     return rsaPrivateKey;
   }
 
-  Future<String> get _localPath async {
-    final directory = await getApplicationDocumentsDirectory();
-
-    return directory.path;
-  }
-
   encryptpackage.IV getIvFromHash(String hashValue) {
     var maxSeedValue = (1 << 32) - 1; //maximum value of 32-bit number
     var hashBigInt = BigInt.parse(hashValue, radix: 16); //parse hash to BigInt
     var seed = hashBigInt % BigInt.from(maxSeedValue); //making sure it's value between 0 - (2^32-1)
     var secureRandom = Random(seed.toInt()); //random generator with seed
     var iv = encryptpackage.IV.fromLength(16); //start with zeros
-    var ivBytes = List<int>.generate(16, (_) => secureRandom.nextInt(256)); //generate random values (based on the seed)
+    var ivBytes = List<int>.generate(
+        16, (_) => secureRandom.nextInt(256)); //generate random values (based on the seed)
     iv.bytes.setAll(0, Uint8List.fromList(ivBytes)); //change every element of IV
     return iv;
   }
 
-  Future<void> saveKeysToFiles(AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey> keyPair, String hashValue) async {
-    final path = await _localPath;
+  Future<void> saveKeysToFiles(
+      AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey> keyPair, String hashValue) async {
+    final path = await getLocalPath();
 
     final publicDir = Directory('$path/public');
     if (!publicDir.existsSync()) {
@@ -257,16 +253,19 @@ class RsaKeyHelper {
     publicKeyFile.writeAsString(encodePublicKeyToPem(keyPair.publicKey));
 
     final privateKeyFile = File('$path/private/key.pem');
-    var keyFromHash = encryptpackage.Key.fromBase16(hashValue); //create key from hexadecimal representation of hash
-    var encrypter = encryptpackage.Encrypter(encryptpackage.AES(keyFromHash, mode: encryptpackage.AESMode.cbc));
+    var keyFromHash = encryptpackage.Key.fromBase16(
+        hashValue); //create key from hexadecimal representation of hash
+    var encrypter =
+        encryptpackage.Encrypter(encryptpackage.AES(keyFromHash, mode: encryptpackage.AESMode.cbc));
     var iv = getIvFromHash(hashValue);
-    var encryptedKey = encrypter.encrypt(encodePrivateKeyToPem(keyPair.privateKey), iv: iv); //encrypt private key in PEM representation with AES
+    var encryptedKey = encrypter.encrypt(encodePrivateKeyToPem(keyPair.privateKey),
+        iv: iv); //encrypt private key in PEM representation with AES
     privateKeyFile.writeAsString(encryptedKey.base16);
   }
 
-  Future<AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey>?> loadKeysFromFiles(String hashValue) async {
-    final path = await _localPath;
-    print(_localPath);
+  Future<AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey>?> loadKeysFromFiles(
+      String hashValue) async {
+    final path = await getLocalPath();
 
     final publicKeyFile = File('$path/public/key.pem');
     final privateKeyFile = File('$path/private/key.pem');
@@ -277,7 +276,8 @@ class RsaKeyHelper {
 
     String encryptedPrivateKey = await privateKeyFile.readAsString();
     var keyFromHash = encryptpackage.Key.fromBase16(hashValue);
-    var encrypter = encryptpackage.Encrypter(encryptpackage.AES(keyFromHash, mode: encryptpackage.AESMode.cbc));
+    var encrypter =
+        encryptpackage.Encrypter(encryptpackage.AES(keyFromHash, mode: encryptpackage.AESMode.cbc));
     var iv = getIvFromHash(hashValue);
     print(iv.bytes);
     String decryptedKey = encrypter.decrypt16(encryptedPrivateKey, iv: iv);
