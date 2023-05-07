@@ -12,11 +12,11 @@ class InterfaceAndAddress {
 
   InterfaceAndAddress(this.interface, this.address);
 
-  @override
-  bool operator ==(dynamic other) => other?.interface == interface && address == other?.address;
+  // @override
+  // bool operator ==(dynamic other) => other?.interface == interface && address == other?.address;
 
-  @override
-  int get hashCode => super.hashCode;
+  // @override
+  // int get hashCode => super.hashCode;
 }
 
 class MenuScreen extends StatefulWidget {
@@ -87,8 +87,7 @@ class _MenuScreenState extends State<MenuScreen> {
               ),
             ),
             ElevatedButton(
-              onPressed:
-                  true ? () => Navigator.of(context).pushNamed(ReceiveScreen.routeName) : null,
+              onPressed: () => Navigator.of(context).pushNamed(ReceiveScreen.routeName),
               style: ElevatedButton.styleFrom(padding: const EdgeInsets.all(15)),
               child: Text(
                 "Listen for connections",
