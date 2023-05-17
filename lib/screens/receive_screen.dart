@@ -45,28 +45,41 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
   void initializeServer(UserData userData) async {
     final RsaKeyHelper rsaKeyHelper = RsaKeyHelper();
 
-    ServerSocket serverSocket =
-        await ServerSocket.bind(userData.ipAddr, 2137); //TODO change to chosen IP
+    ServerSocket serverSocket = await ServerSocket.bind(
+      userData.ipAddr,
+      2137, //TODO change to chosen IP
+    );
     await for (Socket clientSocket in serverSocket) {
       print('Client connected: ${clientSocket.remoteAddress.address}:${clientSocket.remotePort}');
+
       clientSocket.write(rsaKeyHelper.encodePublicKeyToPem(userData.keyPair!.publicKey));
+
       bool receivedSessionKey = false;
-      clientSocket.listen((List<int> data) {
-        String message = utf8.decode(data);
-        if (!receivedSessionKey) {
-          var encryptedSessionKey = message;
-          encrypt.Key sessionKey = encrypt.Key.fromBase64(rsaKeyHelper.decrypt(encryptedSessionKey,
-              userData.keyPair!.privateKey)); //session key decrypted with server private key
-          UserSession userSession = context.read<UserSession>();
-          userSession.sessionKey = sessionKey;
-          print(sessionKey.base64);
-        }
-        receivedSessionKey = true;
-      });
-      clientSocket.done.then((_) {
-        print(
-            'Client disconnected: ${clientSocket.remoteAddress.address}:${clientSocket.remotePort}');
-      });
+      clientSocket.listen(
+        (List<int> data) {
+          String message = utf8.decode(data);
+
+          if (!receivedSessionKey) {
+            var encryptedSessionKey = message;
+            encrypt.Key sessionKey = encrypt.Key.fromBase64(
+              rsaKeyHelper.decrypt(encryptedSessionKey, userData.keyPair!.privateKey),
+            ); //session key decrypted with server private key
+            UserSession userSession = context.read<UserSession>();
+            userSession.sessionKey = sessionKey;
+            print(sessionKey.base64);
+          }
+
+          receivedSessionKey = true;
+        },
+      );
+
+      clientSocket.done.then(
+        (_) {
+          print(
+            'Client disconnected: ${clientSocket.remoteAddress.address}:${clientSocket.remotePort}',
+          );
+        },
+      );
     }
   }
 
