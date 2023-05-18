@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:pointycastle/pointycastle.dart' as rsa;
 import 'package:provider/provider.dart';
+import 'package:crypto/crypto.dart';
 
 import '../models/user.dart';
 import '../models/rsa_key_helper.dart';
@@ -47,15 +50,19 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     rsa.AsymmetricKeyPair<rsa.RSAPublicKey, rsa.RSAPrivateKey>? keyPair;
+
+    var bytes = utf8.encode(_password); //convert string password to UTF-8 bytes
+    var hash = sha256.convert(bytes); //create hash from UTF-8 bytes
+    var hashHex = hash.toString(); //convert hash to its hexadecimal representation
     if (_isLogin) {
-      keyPair = await rsaKeyHelper.loadKeysFromFiles();
+      keyPair = await rsaKeyHelper.loadKeysFromFiles(hashHex);
       if (keyPair == null) {
         print("brak klucza xd");
         return;
       }
     } else {
       keyPair = rsaKeyHelper.generateRSAkeyPair(rsaKeyHelper.exampleSecureRandom());
-      await rsaKeyHelper.saveKeysToFiles(keyPair);
+      await rsaKeyHelper.saveKeysToFiles(keyPair, hashHex);
     }
 
     if (context.mounted) {

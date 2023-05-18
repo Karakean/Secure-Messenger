@@ -54,22 +54,13 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
 
       clientSocket.write(rsaKeyHelper.encodePublicKeyToPem(userData.keyPair!.publicKey));
 
-      bool receivedSessionKey = false;
+      bool establishedConnection = false;
       clientSocket.listen(
         (List<int> data) {
           String message = utf8.decode(data);
-
-          if (!receivedSessionKey) {
-            var encryptedSessionKey = message;
-            encrypt.Key sessionKey = encrypt.Key.fromBase64(
-              rsaKeyHelper.decrypt(encryptedSessionKey, userData.keyPair!.privateKey),
-            ); //session key decrypted with server private key
-            UserSession userSession = context.read<UserSession>();
-            userSession.sessionKey = sessionKey;
-            print(sessionKey.base64);
+          if (!establishedConnection) {
+            establishedConnection = handshake(rsaKeyHelper, message, userData);
           }
-
-          receivedSessionKey = true;
         },
       );
 
@@ -81,6 +72,15 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
         },
       );
     }
+  }
+
+  bool handshake(RsaKeyHelper rsaKeyHelper, var message, var userData) {
+    var encryptedSessionKey = message;
+    encrypt.Key sessionKey = encrypt.Key.fromBase64(rsaKeyHelper.decrypt(encryptedSessionKey, userData.keyPair!.privateKey)); //session key decrypted with server private key
+    UserSession userSession = context.read<UserSession>();
+    userSession.sessionKey = sessionKey;
+    print(sessionKey.base64);
+    return true;
   }
 
   @override
