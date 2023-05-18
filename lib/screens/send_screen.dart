@@ -42,23 +42,27 @@ class _SendScreenState extends State<SendScreen> {
     var socket = await Socket.connect(destination, 2137);
 
     // Listen for incoming messages from server
-    bool afterHandshake = false;
+    bool establishedConnection = false;
     socket.listen(
       (List<int> data) {
         String message = utf8.decode(data);
         print('Received message from server: $message');
 
-        if (!afterHandshake) {
-          RsaKeyHelper rsaKeyHelper = RsaKeyHelper(); //TODO singleton
-          RSAPublicKey serverPublicKey = rsaKeyHelper.parsePublicKeyFromPem(message);
-          UserSession userSession = context.read<UserSession>();
-          userSession.generateSessionKey();
-          print(userSession.sessionKey!.base64);
-          socket.write(rsaKeyHelper.encrypt(userSession.sessionKey!.base64, serverPublicKey));
-          afterHandshake = true;
+        if (!establishedConnection) {
+          establishedConnection = handshake(message, socket);
         }
       },
     );
+  }
+
+  bool handshake(String message, Socket socket) {
+    RsaKeyHelper rsaKeyHelper = RsaKeyHelper(); //TODO singleton
+    RSAPublicKey serverPublicKey = rsaKeyHelper.parsePublicKeyFromPem(message);
+    UserSession userSession = context.read<UserSession>();
+    userSession.generateSessionKey();
+    print(userSession.sessionKey!.base64);
+    socket.write(rsaKeyHelper.encrypt(userSession.sessionKey!.base64, serverPublicKey));
+    return true;
   }
 
   @override

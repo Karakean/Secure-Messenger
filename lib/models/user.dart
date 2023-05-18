@@ -20,7 +20,7 @@ class UserSession with ChangeNotifier {
   }
 
   void generateIV() {
-    _iv = encrypt.IV.fromLength(16);
+    _iv = encrypt.IV.fromLength(16); //TODO change to fromSecureRandom(16)
     notifyListeners();
   }
 
