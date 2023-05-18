@@ -25,7 +25,7 @@ class UserSession with ChangeNotifier {
   }
 
   void generateSessionKey() {
-    _sessionKey = encrypt.Key.fromSecureRandom(32);
+    _sessionKey = encrypt.Key.fromSecureRandom(16);
     notifyListeners();
   }
 
