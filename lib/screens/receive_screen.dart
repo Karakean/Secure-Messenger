@@ -51,11 +51,9 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
       userData.ipAddr,
       2137
     );
+
     await for (Socket clientSocket in serverSocket) {
-      print('Client connected: ${clientSocket.remoteAddress.address}:${clientSocket.remotePort}');
-
-      
-
+      //print('Client connected: ${clientSocket.remoteAddress.address}:${clientSocket.remotePort}');
       bool establishedConnection = false;
       int handshakeProgress = 0; //progress of the handshake
       clientSocket.listen(
@@ -102,7 +100,8 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
         break;
       case 2:
         try {
-          ClientPackage clientPackage = ClientPackage.fromString(message);
+          String decryptedMessage = rsaKeyHelper.decrypt(message, userData.keyPair!.privateKey);
+          ClientPackage clientPackage = ClientPackage.fromString(decryptedMessage);
           encrypt.AESMode chosenMode = clientPackage.cipherMode == "CBC" ? encrypt.AESMode.cbc : encrypt.AESMode.ecb;
           encrypter = encrypt.Encrypter(encrypt.AES(clientPackage.sessionKey, mode: chosenMode));
           iv = clientPackage.iv;
@@ -130,7 +129,7 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             userSession.sessionKey != null
-                ? Text("Your session key is: ${userSession.sessionKey!.base64}")
+                ? Text("Your session key is: ${userSession.sessionKey!.base64}") //Krzychu wez to wyrzuc co to tu wgl robi
                 : const CircularProgressIndicator(),
             Text(
               "Listening for connections...",
