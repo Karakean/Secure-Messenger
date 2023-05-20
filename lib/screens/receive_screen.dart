@@ -1,12 +1,15 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:secure_messenger/models/ClientPackage.dart';
+import 'package:secure_messenger/models/client_package.dart';
 import 'package:secure_messenger/models/rsa_key_helper.dart';
 import 'package:secure_messenger/models/user.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
+
+import '../controllers/communication_controller.dart';
 
 class ReceiveScreen extends StatefulWidget {
   static const routeName = "/receive";
@@ -19,6 +22,8 @@ class ReceiveScreen extends StatefulWidget {
 
 class _ReceiveScreenState extends State<ReceiveScreen> {
   final RsaKeyHelper rsaKeyHelper = RsaKeyHelper();
+  CommunicationController communicationController = CommunicationController();
+  
   @override
   void initState() {
     super.initState();
@@ -44,9 +49,26 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
     }
   }
 
+  Future<Uint8List> readBytesFromFile(String filePath) async {
+    final file = File(filePath);
+    return await file.readAsBytes();
+  }
+
+  Future<void> saveBytesToFile(List<int> bytes, String filePath) async {
+    final file = File(filePath);
+    await file.writeAsBytes(bytes);
+    print('File saved: $filePath');
+  }
+
   void initializeServer(UserData userData) async {
     encrypt.Encrypter? encrypter;
     encrypt.IV? iv;
+
+    UserSession userSession = context.read<UserSession>();
+    userSession.generateSessionKey();
+    iv = encrypt.IV.fromSecureRandom(16);
+    communicationController.test(encrypt.Encrypter(encrypt.AES(userSession.sessionKey!)), iv);
+
     ServerSocket serverSocket = await ServerSocket.bind(
       userData.ipAddr,
       2137
@@ -67,9 +89,9 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
 
           if (handshakeProgress == -1) {
             throw Exception("Krzychu dasz tu cos fajnego?");
-          } else if(handshakeProgress == 3) {
+          } else if(handshakeProgress == 4) {
             establishedConnection = true;
-            print("ESSA");
+            print("ESSA"); //TODO przejscie
           }
         },
       );
@@ -109,6 +131,11 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
           return ++handshakeProgress;
         } catch (e) {
           print('$e Krzychu obsluzysz to szwagier?');
+        }
+        break;
+      case 3:
+        if (encrypter!.decrypt16(message, iv: iv) == 'DONE-ACK') {
+          return ++handshakeProgress;
         }
         break;
       default:

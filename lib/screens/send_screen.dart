@@ -3,7 +3,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:secure_messenger/models/ClientPackage.dart';
+import 'package:secure_messenger/models/communication_helper.dart';
+import 'package:secure_messenger/models/client_package.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
 
 
@@ -23,6 +24,7 @@ class SendScreen extends StatefulWidget {
 class _SendScreenState extends State<SendScreen> {
   InternetAddress destination = InternetAddress("192.168.0.8");
   RsaKeyHelper rsaKeyHelper = RsaKeyHelper();
+  CommunicationController communicationController = CommunicationController();
 
   void disconnectFromServer(Socket socket) {
     socket.writeln('QU17');
@@ -46,40 +48,41 @@ class _SendScreenState extends State<SendScreen> {
     var socket = await Socket.connect(destination, 2137);
     bool establishedConnection = false;
     int handshakeProgress = 0; //progress of the handshake
+    List<int> fileBytesBuffer = []; //are we receiving file rn
+    bool recvFile = false;
     socket.listen(
-      (List<int> data) {
-        String message = utf8.decode(data);
+      (List<int> receivedData) {
         if (establishedConnection){
-          //normal msg handling
+          recvFile = communicationController.handleRegularCommunication(encrypter, receivedData, iv, fileBytesBuffer, recvFile);
         } else {
-          handshakeProgress = handshake(encrypter, iv, message, socket, handshakeProgress);
+          handshakeProgress = handleClientHandshake(encrypter, iv, receivedData, socket, handshakeProgress);
         }
 
         if (handshakeProgress == -1) {
           throw Exception("Krzychu dasz tu cos fajnego?");
         } else if(handshakeProgress == 3) {
           establishedConnection = true;
-          print("ESSA");
+          print("ESSA"); //TODO przejscie do chatu
         }
       },
     );
     socket.write('SYN');
   }
 
-  int handshake(encrypt.Encrypter? encrypter, encrypt.IV? iv, String message, Socket socket, int handshakeProgress) {
+  int handleClientHandshake(encrypt.Encrypter? encrypter, encrypt.IV? iv, List<int> receivedData, Socket socket, int handshakeProgress) {
+    String decodedData = utf8.decode(receivedData);
     switch(handshakeProgress) {
       case 0:
-        if (message == 'SYN-ACK') {
+        if (decodedData == 'SYN-ACK') {
           socket.write('ACK');
           return ++handshakeProgress;
         }
         break;
       case 1:
         try {
-          RSAPublicKey serverPublicKey = rsaKeyHelper.parsePublicKeyFromPem(message);
+          RSAPublicKey serverPublicKey = rsaKeyHelper.parsePublicKeyFromPem(decodedData);
           UserSession userSession = context.read<UserSession>();
           userSession.generateSessionKey();
-          //String encryptedSessionKey = rsaKeyHelper.encrypt(userSession.sessionKey!.base64, serverPublicKey);
           iv = encrypt.IV.fromSecureRandom(16);
           ClientPackage clientPackage = ClientPackage(userSession.sessionKey!, "AES", "CBC", 16, 16, iv); //TODO change to user chosen mode
           encrypter = encrypt.Encrypter(encrypt.AES(userSession.sessionKey!, mode: encrypt.AESMode.cbc)); //TODO change to user chosen mode
@@ -91,7 +94,8 @@ class _SendScreenState extends State<SendScreen> {
         }
         break;
       case 2:
-        if (encrypter!.decrypt16(message, iv: iv) == 'DONE') {
+        if (encrypter!.decrypt16(decodedData, iv: iv) == 'DONE') {
+          socket.write(encrypter.encrypt('DONE-ACK', iv: iv).base16);
           return ++handshakeProgress;
         }
         break;
