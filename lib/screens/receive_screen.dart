@@ -9,7 +9,7 @@ import 'package:secure_messenger/models/rsa_key_helper.dart';
 import 'package:secure_messenger/models/user.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
 
-import '../controllers/communication_controller.dart';
+import '../models/communication_helper.dart';
 
 class ReceiveScreen extends StatefulWidget {
   static const routeName = "/receive";
