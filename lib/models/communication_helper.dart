@@ -4,7 +4,28 @@ import 'dart:typed_data';
 
 import 'package:encrypt/encrypt.dart' as encrypt;
 
-class CommunicationController {
+enum CommunicationStates {
+  initial,
+  ackExpectation,
+  keyExpectation,
+  packageExpectation,
+  doneExpectation,
+  doneAckExpectation,
+  regular,
+  filenameExpecation,
+  receivingFile
+}
+
+class CommunicationData {
+  CommunicationStates currentState = CommunicationStates.initial;
+
+  encrypt.Encrypter? encrypter;
+  encrypt.IV? iv;
+  List<int> fileBytesBuffer = [];
+  String filename = '';
+}
+
+class CommunicationHelper {
   static const packetSize = 1024 * 1024; // 1MB
 
   Future<void> saveBytesToFile(List<int> bytes, String filePath) async {
@@ -35,25 +56,37 @@ class CommunicationController {
     print("Sending in progress (${(packetCounter / totalPackets) * 100}%)"); //TODO zamienic na fajny paseczek
   }
 
-  bool handleRegularCommunication(encrypt.Encrypter? encrypter, List<int> receivedData, encrypt.IV? iv, List<int> fileBytesBuffer, recvFile) {
-    String decryptedMessage = encrypter!.decrypt16(utf8.decode(receivedData), iv: iv);
-    if (decryptedMessage == 'SEND-FILE') {
-      return true;
+  void handleCommunication(Socket socket, CommunicationData communicationData, List<int> receivedData) {
+    String decryptedMessage = communicationData.encrypter!.decrypt16(utf8.decode(receivedData), iv: communicationData.iv);
+    switch (communicationData.currentState) {
+      case CommunicationStates.regular:
+        if (decryptedMessage == 'SEND-FILE') {
+          socket.write(communicationData.encrypter!.encrypt('FILE-ACCEPT', iv: communicationData.iv).base16); //TODO accept conditionally
+          communicationData.currentState = CommunicationStates.filenameExpecation;
+          break;
+        }
+        print(decryptedMessage); //regular message
+        break;
+      case CommunicationStates.filenameExpecation:
+        communicationData.filename = decryptedMessage;
+        communicationData.currentState = CommunicationStates.receivingFile;
+        break;
+      case CommunicationStates.receivingFile:
+        if (decryptedMessage == 'SENT') {
+          saveBytesToFile(communicationData.fileBytesBuffer, communicationData.filename); //TODO dodac prawidlowa sciezke
+          communicationData.currentState = CommunicationStates.regular;
+          break;
+        } else if (decryptedMessage == 'INTERRUPT') {
+          //TODO jakies obsluzenie faktu ze sie wydupcylo przesylanie
+          communicationData.currentState = CommunicationStates.regular;
+          break;
+        }
+        List<int> decryptedData = communicationData.encrypter!.decryptBytes(encrypt.Encrypted(Uint8List.fromList(receivedData)), iv: communicationData.iv);
+        communicationData.fileBytesBuffer.addAll(decryptedData);
+        break;
+      default:
+        break;
     }
-    if (recvFile) {
-      if (decryptedMessage == 'SENT') {
-        saveBytesToFile(fileBytesBuffer, 'tmp.jpg'); //TODO zmienic na prawidlowa sciezke
-        return false;
-      } else if (decryptedMessage == 'INTERRUPT') {
-        //TODO jakies obsluzenie faktu ze sie wydupcylo przesylanie
-        return false;
-      }
-      List<int> decryptedData = encrypter.decryptBytes(encrypt.Encrypted(Uint8List.fromList(receivedData)), iv: iv);
-      fileBytesBuffer.addAll(decryptedData);
-      return true;
-    } 
-    print(decryptedMessage); //regular message
-    return false;
   }
 
 

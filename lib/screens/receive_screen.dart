@@ -22,7 +22,7 @@ class ReceiveScreen extends StatefulWidget {
 
 class _ReceiveScreenState extends State<ReceiveScreen> {
   final RsaKeyHelper rsaKeyHelper = RsaKeyHelper();
-  CommunicationController communicationController = CommunicationController();
+  CommunicationHelper communicationHelper = CommunicationHelper();
   
   @override
   void initState() {
@@ -61,14 +61,10 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
   }
 
   void initializeServer(UserData userData) async {
-    encrypt.Encrypter? encrypter;
-    encrypt.IV? iv;
-
-    UserSession userSession = context.read<UserSession>();
-    userSession.generateSessionKey();
-    iv = encrypt.IV.fromSecureRandom(16);
-    communicationController.test(encrypt.Encrypter(encrypt.AES(userSession.sessionKey!)), iv);
-
+    // UserSession userSession = context.read<UserSession>();
+    // userSession.generateSessionKey();
+    // iv = encrypt.IV.fromSecureRandom(16);
+    // communicationHelper.test(encrypt.Encrypter(encrypt.AES(userSession.sessionKey!)), iv);
     ServerSocket serverSocket = await ServerSocket.bind(
       userData.ipAddr,
       2137
@@ -76,22 +72,17 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
 
     await for (Socket clientSocket in serverSocket) {
       //print('Client connected: ${clientSocket.remoteAddress.address}:${clientSocket.remotePort}');
-      bool establishedConnection = false;
-      int handshakeProgress = 0; //progress of the handshake
+      CommunicationData communicationData = CommunicationData();
       clientSocket.listen(
-        (List<int> data) {
-          String message = utf8.decode(data);
-          if (establishedConnection){
-            //normal msg handling
+        (List<int> receivedData) {
+          if (communicationData.currentState == CommunicationStates.regular) {
+          communicationHelper.handleCommunication(clientSocket, communicationData, receivedData);
           } else {
-            handshakeProgress = handshake(encrypter, iv, userData, clientSocket, message, handshakeProgress);
-          }
-
-          if (handshakeProgress == -1) {
-            throw Exception("Krzychu dasz tu cos fajnego?");
-          } else if(handshakeProgress == 4) {
-            establishedConnection = true;
-            print("ESSA"); //TODO przejscie
+            try {
+              handleServerHandshake(clientSocket, communicationData, userData, receivedData);
+            } catch (e) {
+              print('$e Krzychu obsluzysz to szwagier?');
+            }
           }
         },
       );
@@ -106,42 +97,47 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
     }
   }
 
-  int handshake(encrypt.Encrypter? encrypter, encrypt.IV? iv, UserData userData, Socket socket, String message, int handshakeProgress) {
-    switch(handshakeProgress) {
-      case 0:
-        if (message == 'SYN') {
+  void handleServerHandshake(Socket socket, CommunicationData communicationData, UserData userData, List<int> receivedData) {
+    String decodedData = utf8.decode(receivedData);
+    switch(communicationData.currentState) {
+      case CommunicationStates.initial:
+        if (decodedData == 'SYN') {
           socket.write('SYN-ACK');
-          return ++handshakeProgress;
+          communicationData.currentState = CommunicationStates.ackExpectation;
+          return;
         }
         break;
-      case 1:
-        if (message == 'ACK') {
+      case CommunicationStates.ackExpectation:
+        if (decodedData == 'ACK') {
           socket.write(rsaKeyHelper.encodePublicKeyToPem(userData.keyPair!.publicKey));
-          return ++handshakeProgress;
+          communicationData.currentState = CommunicationStates.packageExpectation;
+          return;
         }
         break;
-      case 2:
+      case CommunicationStates.packageExpectation:
         try {
-          String decryptedMessage = rsaKeyHelper.decrypt(message, userData.keyPair!.privateKey);
+          String decryptedMessage = rsaKeyHelper.decrypt(decodedData, userData.keyPair!.privateKey);
           ClientPackage clientPackage = ClientPackage.fromString(decryptedMessage);
           encrypt.AESMode chosenMode = clientPackage.cipherMode == "CBC" ? encrypt.AESMode.cbc : encrypt.AESMode.ecb;
-          encrypter = encrypt.Encrypter(encrypt.AES(clientPackage.sessionKey, mode: chosenMode));
-          iv = clientPackage.iv;
-          socket.write(encrypter.encrypt('DONE', iv: iv).base16);
-          return ++handshakeProgress;
+          communicationData.encrypter = encrypt.Encrypter(encrypt.AES(clientPackage.sessionKey, mode: chosenMode));
+          communicationData.iv = clientPackage.iv;
+          socket.write(communicationData.encrypter!.encrypt('DONE', iv: communicationData.iv).base16);
+          communicationData.currentState = CommunicationStates.doneAckExpectation;
+          return;
         } catch (e) {
           print('$e Krzychu obsluzysz to szwagier?');
         }
         break;
-      case 3:
-        if (encrypter!.decrypt16(message, iv: iv) == 'DONE-ACK') {
-          return ++handshakeProgress;
+      case CommunicationStates.doneAckExpectation:
+        if (communicationData.encrypter!.decrypt16(decodedData, iv: communicationData.iv) == 'DONE-ACK') {
+          communicationData.currentState = CommunicationStates.regular;
+          return;
         }
         break;
       default:
         break;
     }
-    return -1;
+    throw Exception("Something went wrong...");
   }
 
   @override
