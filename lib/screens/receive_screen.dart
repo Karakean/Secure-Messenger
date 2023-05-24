@@ -80,7 +80,8 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
       CommunicationData communicationData = CommunicationData();
       clientSocket.listen(
         (List<int> receivedData) {
-          if (communicationData.currentState == CommunicationStates.regular) {
+          if (communicationData.afterHandshake) {
+            //split or smth idk
             communicationHelper.handleCommunication(clientSocket, communicationData, receivedData);
           } else {
             try {
@@ -101,7 +102,7 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
 
   void handleServerHandshake(Socket socket, CommunicationData communicationData, UserData userData,
       List<int> receivedData) {
-    String decodedData = utf8.decode(receivedData);
+    String decodedData = utf8.decode(receivedData, allowMalformed: true); // tu sie jebie
     switch (communicationData.currentState) {
       case CommunicationStates.initial:
         if (decodedData == 'SYN') {
@@ -111,15 +112,21 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
         }
         break;
       case CommunicationStates.ackExpectation:
-        if (decodedData == 'ACK') {
-          socket.write(rsaKeyHelper.encodePublicKeyToPem(userData.keyPair!.publicKey));
-          communicationData.currentState = CommunicationStates.packageExpectation;
-          return;
+        try {
+          if (decodedData == 'ACK') {
+            socket.write(rsaKeyHelper.encodePublicKeyToPem(userData.keyPair!.publicKey));
+            communicationData.currentState = CommunicationStates.packageExpectation;
+            return;
+          }
+        } catch (e) {
+          print("$e ??!!");
         }
+
         break;
       case CommunicationStates.packageExpectation:
         try {
           String decryptedMessage = rsaKeyHelper.decrypt(decodedData, userData.keyPair!.privateKey);
+          print("decrypted");
           ClientPackage clientPackage = ClientPackage.fromString(decryptedMessage);
           encrypt.AESMode chosenMode =
               clientPackage.cipherMode == "CBC" ? encrypt.AESMode.cbc : encrypt.AESMode.ecb;
@@ -131,13 +138,14 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
           communicationData.currentState = CommunicationStates.doneAckExpectation;
           return;
         } catch (e) {
-          print('$e Krzychu obsluzysz to szwagier?');
+          print('$e szkurna pkg-expect');
         }
         break;
       case CommunicationStates.doneAckExpectation:
         if (communicationData.encrypter!.decrypt16(decodedData, iv: communicationData.iv) ==
             'DONE-ACK') {
           communicationData.currentState = CommunicationStates.regular;
+          communicationData.afterHandshake = true;
           return;
         }
         break;

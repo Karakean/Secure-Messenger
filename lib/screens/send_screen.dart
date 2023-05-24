@@ -57,7 +57,7 @@ class _SendScreenState extends State<SendScreen> {
     CommunicationData communicationData = CommunicationData();
     socket.listen(
       (List<int> receivedData) {
-        if (communicationData.currentState == CommunicationStates.regular) {
+        if (communicationData.afterHandshake) {
           communicationHelper.handleCommunication(socket, communicationData, receivedData);
         } else {
           try {
@@ -77,7 +77,6 @@ class _SendScreenState extends State<SendScreen> {
     switch (communicationData.currentState) {
       case CommunicationStates.initial:
         if (decodedData == 'SYN-ACK') {
-          print("ZERO-DWA");
           socket.write('ACK');
           communicationData.currentState = CommunicationStates.keyExpectation;
           return;
@@ -107,6 +106,16 @@ class _SendScreenState extends State<SendScreen> {
           socket.write(
               communicationData.encrypter!.encrypt('DONE-ACK', iv: communicationData.iv).base16);
           communicationData.currentState = CommunicationStates.regular;
+          communicationData.afterHandshake = true;
+
+          print("sending file");
+          communicationHelper.sendFile(
+            File("/home/kulpas/Desktop/xdd.jpeg"),
+            socket,
+            communicationData.encrypter!,
+            communicationData.iv!,
+          );
+
           return;
         }
         break;

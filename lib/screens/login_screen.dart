@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:pointycastle/pointycastle.dart' as rsa;
 import 'package:provider/provider.dart';
 import 'package:crypto/crypto.dart';
+import 'package:secure_messenger/models/common.dart';
 import 'package:secure_messenger/screens/menu_screen.dart';
 import 'package:secure_messenger/widgets/custom_field.dart';
 
@@ -75,6 +77,8 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<String> path = getLocalPath();
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -87,6 +91,10 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                FutureBuilder(
+                  future: path,
+                  builder: (context, snapshot) => Image.file(File('${snapshot.data!}/xdd.jpeg')),
+                ),
                 Text(
                   "Secure Messenger",
                   style: Theme.of(context).textTheme.headlineSmall,
