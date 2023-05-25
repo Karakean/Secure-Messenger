@@ -58,10 +58,7 @@ class CommunicationHelper {
       int packetCounter, int totalPackets) {
     final packetEndIdx = fileBytes.length < packetSize ? fileBytes.length : packetSize;
     final dataChunk = fileBytes.sublist(0, packetEndIdx);
-    print(dataChunk.length);
     final encryptedChunk = encrypter.encryptBytes(dataChunk, iv: iv).bytes;
-    print(encryptedChunk);
-    print(encryptedChunk.length);
     socket.add(encryptedChunk);
     fileBytes.removeRange(0, packetEndIdx);
 
@@ -71,24 +68,16 @@ class CommunicationHelper {
 
   void handleCommunication(
       Socket socket, CommunicationData communicationData, List<int> receivedData) {
-    print("AAA");
     String decryptedMessage = "";
     try {
-      print(Uint8List.fromList(receivedData));
-      print("xd");
-      print(Uint8List.fromList(receivedData).length);
-      print(receivedData.length);
-      print(utf8.decode(receivedData, allowMalformed: true));
-      print(utf8.decode(receivedData, allowMalformed: true).length);
       decryptedMessage = communicationData.encrypter!.decrypt16(
         utf8.decode(receivedData, allowMalformed: true),
         iv: communicationData.iv,
       );
     } catch (e) {
-      print("$e kurwa");
+      print("$e | secure_messenger ignore");
     }
 
-    print("BBB");
     switch (communicationData.currentState) {
       case CommunicationStates.regular:
         if (decryptedMessage == 'SEND-FILE') {
@@ -98,28 +87,22 @@ class CommunicationHelper {
           communicationData.currentState = CommunicationStates.filenameExpecation;
           break;
         }
-        print(decryptedMessage); //regular message
         break;
       case CommunicationStates.filenameExpecation:
-        print("xd1");
-        print(decryptedMessage);
         communicationData.filename = decryptedMessage;
         communicationData.currentState = CommunicationStates.receivingFile;
         break;
       case CommunicationStates.receivingFile:
         if (decryptedMessage == 'SENT') {
-          print("xd2");
           saveBytesToFile(communicationData.fileBytesBuffer,
               communicationData.filename); //TODO dodac prawidlowa sciezke
           communicationData.currentState = CommunicationStates.regular;
           break;
         } else if (decryptedMessage == 'INTERRUPT') {
-          print("xd3");
           //TODO jakies obsluzenie faktu ze sie wydupcylo przesylanie
           communicationData.currentState = CommunicationStates.regular;
           break;
         }
-        print("xd4");
         List<int> decryptedData = communicationData.encrypter!.decryptBytes(
             encrypt.Encrypted(Uint8List.fromList(receivedData)),
             iv: communicationData.iv);

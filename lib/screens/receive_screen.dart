@@ -84,11 +84,7 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
             //split or smth idk
             communicationHelper.handleCommunication(clientSocket, communicationData, receivedData);
           } else {
-            try {
-              handleServerHandshake(clientSocket, communicationData, userData, receivedData);
-            } catch (e) {
-              print('$e Krzychu obsluzysz to szwagier?');
-            }
+            handleServerHandshake(clientSocket, communicationData, userData, receivedData);
           }
         },
       );
@@ -112,34 +108,24 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
         }
         break;
       case CommunicationStates.ackExpectation:
-        try {
-          if (decodedData == 'ACK') {
-            socket.write(rsaKeyHelper.encodePublicKeyToPem(userData.keyPair!.publicKey));
-            communicationData.currentState = CommunicationStates.packageExpectation;
-            return;
-          }
-        } catch (e) {
-          print("$e ??!!");
+        if (decodedData == 'ACK') {
+          socket.write(rsaKeyHelper.encodePublicKeyToPem(userData.keyPair!.publicKey));
+          communicationData.currentState = CommunicationStates.packageExpectation;
+          return;
         }
 
         break;
       case CommunicationStates.packageExpectation:
-        try {
-          String decryptedMessage = rsaKeyHelper.decrypt(decodedData, userData.keyPair!.privateKey);
-          print("decrypted");
-          ClientPackage clientPackage = ClientPackage.fromString(decryptedMessage);
-          encrypt.AESMode chosenMode =
-              clientPackage.cipherMode == "CBC" ? encrypt.AESMode.cbc : encrypt.AESMode.ecb;
-          communicationData.encrypter =
-              encrypt.Encrypter(encrypt.AES(clientPackage.sessionKey, mode: chosenMode));
-          communicationData.iv = clientPackage.iv;
-          socket
-              .write(communicationData.encrypter!.encrypt('DONE', iv: communicationData.iv).base16);
-          communicationData.currentState = CommunicationStates.doneAckExpectation;
-          return;
-        } catch (e) {
-          print('$e szkurna pkg-expect');
-        }
+        String decryptedMessage = rsaKeyHelper.decrypt(decodedData, userData.keyPair!.privateKey);
+        ClientPackage clientPackage = ClientPackage.fromString(decryptedMessage);
+        encrypt.AESMode chosenMode =
+            clientPackage.cipherMode == "CBC" ? encrypt.AESMode.cbc : encrypt.AESMode.ecb;
+        communicationData.encrypter =
+            encrypt.Encrypter(encrypt.AES(clientPackage.sessionKey, mode: chosenMode));
+        communicationData.iv = clientPackage.iv;
+        socket.write(communicationData.encrypter!.encrypt('DONE', iv: communicationData.iv).base16);
+        communicationData.currentState = CommunicationStates.doneAckExpectation;
+        return;
         break;
       case CommunicationStates.doneAckExpectation:
         if (communicationData.encrypter!.decrypt16(decodedData, iv: communicationData.iv) ==

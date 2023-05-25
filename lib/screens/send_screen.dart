@@ -60,11 +60,7 @@ class _SendScreenState extends State<SendScreen> {
         if (communicationData.afterHandshake) {
           communicationHelper.handleCommunication(socket, communicationData, receivedData);
         } else {
-          try {
-            handleClientHandshake(socket, communicationData, receivedData);
-          } catch (e) {
-            print('$e Krzychu obsluzysz to szwagier?');
-          }
+          handleClientHandshake(socket, communicationData, receivedData);
         }
       },
     );
@@ -83,22 +79,18 @@ class _SendScreenState extends State<SendScreen> {
         }
         break;
       case CommunicationStates.keyExpectation:
-        try {
-          RSAPublicKey serverPublicKey = rsaKeyHelper.parsePublicKeyFromPem(decodedData);
-          UserSession userSession = context.read<UserSession>();
-          userSession.generateSessionKey();
-          communicationData.iv = encrypt.IV.fromSecureRandom(16);
-          ClientPackage clientPackage = ClientPackage(userSession.sessionKey!, "AES", "CBC", 16, 16,
-              communicationData.iv!); //TODO change to user chosen mode
-          communicationData.encrypter = encrypt.Encrypter(encrypt.AES(userSession.sessionKey!,
-              mode: encrypt.AESMode.cbc)); //TODO change to user chosen mode
-          String encryptedPackage = rsaKeyHelper.encrypt(clientPackage.toString(), serverPublicKey);
-          socket.write(encryptedPackage);
-          communicationData.currentState = CommunicationStates.doneExpectation;
-          return;
-        } catch (e) {
-          print('$e Krzychu obsluzysz to szwagier?');
-        }
+        RSAPublicKey serverPublicKey = rsaKeyHelper.parsePublicKeyFromPem(decodedData);
+        UserSession userSession = context.read<UserSession>();
+        userSession.generateSessionKey();
+        communicationData.iv = encrypt.IV.fromSecureRandom(16);
+        ClientPackage clientPackage = ClientPackage(userSession.sessionKey!, "AES", "CBC", 16, 16,
+            communicationData.iv!); //TODO change to user chosen mode
+        communicationData.encrypter = encrypt.Encrypter(encrypt.AES(userSession.sessionKey!,
+            mode: encrypt.AESMode.cbc)); //TODO change to user chosen mode
+        String encryptedPackage = rsaKeyHelper.encrypt(clientPackage.toString(), serverPublicKey);
+        socket.write(encryptedPackage);
+        communicationData.currentState = CommunicationStates.doneExpectation;
+        return;
         break;
       case CommunicationStates.doneExpectation:
         if (communicationData.encrypter!.decrypt16(decodedData, iv: communicationData.iv) ==
