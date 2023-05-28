@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:flutter/material.dart';
+import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:pointycastle/pointycastle.dart';
 
 class UserSession with ChangeNotifier {

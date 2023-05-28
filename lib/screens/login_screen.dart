@@ -5,12 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:pointycastle/pointycastle.dart' as rsa;
 import 'package:provider/provider.dart';
 import 'package:crypto/crypto.dart';
+
 import 'package:secure_messenger/models/common.dart';
 import 'package:secure_messenger/screens/menu_screen.dart';
 import 'package:secure_messenger/widgets/custom_field.dart';
-
-import '../models/user.dart';
-import '../models/rsa_key_helper.dart';
+import 'package:secure_messenger/models/user.dart';
+import 'package:secure_messenger/models/communication/rsa_key_helper.dart';
 
 class LoginScreen extends StatefulWidget {
   static const routeName = "/";
@@ -53,11 +53,11 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    rsa.AsymmetricKeyPair<rsa.RSAPublicKey, rsa.RSAPrivateKey>? keyPair;
+    final rsa.AsymmetricKeyPair<rsa.RSAPublicKey, rsa.RSAPrivateKey>? keyPair;
+    final bytes = utf8.encode(_password); //convert string password to UTF-8 bytes
+    final hash = sha256.convert(bytes); //create hash from UTF-8 bytes
+    final hashHex = hash.toString(); //convert hash to its hexadecimal representation
 
-    var bytes = utf8.encode(_password); //convert string password to UTF-8 bytes
-    var hash = sha256.convert(bytes); //create hash from UTF-8 bytes
-    var hashHex = hash.toString(); //convert hash to its hexadecimal representation
     if (_isLogin) {
       keyPair = await rsaKeyHelper.loadKeysFromFiles(hashHex);
       if (keyPair == null) {
@@ -77,7 +77,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<String> path = getLocalPath();
+  final Future<String> path = getLocalPath();
 
   @override
   Widget build(BuildContext context) {

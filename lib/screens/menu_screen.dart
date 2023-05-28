@@ -1,23 +1,13 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:secure_messenger/models/user.dart';
-import 'package:secure_messenger/screens/receive_screen.dart';
-import 'package:secure_messenger/screens/send_screen.dart';
 import 'package:provider/provider.dart';
 
-class InterfaceAndAddress {
-  final NetworkInterface interface;
-  final InternetAddress address;
-
-  InterfaceAndAddress(this.interface, this.address);
-
-  // @override
-  // bool operator ==(dynamic other) => other?.interface == interface && address == other?.address;
-
-  // @override
-  // int get hashCode => super.hashCode;
-}
+import 'package:secure_messenger/models/user.dart';
+import 'package:secure_messenger/models/common.dart';
+import 'package:secure_messenger/screens/receive_screen.dart';
+import 'package:secure_messenger/screens/send_screen.dart';
+import 'package:secure_messenger/widgets/ip_adress_dropdown_menu.dart';
 
 class MenuScreen extends StatefulWidget {
   static const routeName = "/menu";
@@ -85,10 +75,6 @@ class _MenuScreenState extends State<MenuScreen> {
             children: [
               Column(
                 children: [
-                  // Text(
-                  //   userData.ipAddr?.address ?? "No IP address set!",
-                  //   style: Theme.of(context).textTheme.titleMedium,
-                  // ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
@@ -96,21 +82,15 @@ class _MenuScreenState extends State<MenuScreen> {
                         future: optionsFuture,
                         builder: (context, snapshot) => snapshot.data == null
                             ? const CircularProgressIndicator()
-                            : DropdownButton(
-                                items: [
-                                  for (InterfaceAndAddress val in snapshot.data!)
-                                    DropdownMenuItem<InterfaceAndAddress>(
-                                      value: val,
-                                      child: Text("${val.interface.name}: ${val.address.address}"),
-                                    )
-                                ],
+                            : IpAdressDrowdownMenu(
                                 value: selectedValue,
-                                onChanged: (value) {
+                                values: snapshot.data!,
+                                callback: (value) {
                                   setState(() {
                                     selectedValue = value;
                                   });
-                                  userData.interface = value?.interface;
                                   userData.ipAddr = value?.address;
+                                  userData.interface = value?.interface;
                                 },
                               ),
                       ),
