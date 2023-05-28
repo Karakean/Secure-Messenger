@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -19,27 +20,31 @@ Future<void> saveBytesToFile(List<int> bytes, String filePath) async {
 void sendFile(
   File file,
   Socket socket,
-  encrypt.Encrypter encrypter,
-  encrypt.IV iv,
+  CommunicationData communicationData
 ) async {
   final Uint8List fixedLengthFileBytes = await file.readAsBytes();
   final List<int> fileBytes = fixedLengthFileBytes.toList();
   final int totalPackets = (fileBytes.length / kPacketSize).ceil();
   int packetCounter = 0;
-
-  socket.write(encrypter.encrypt('SEND-FILE', iv: iv).base16);
-  await Future.delayed(
-    const Duration(milliseconds: 250),
-  ); //TODO: Replace with acknoledge mechanism
-  socket.write(encrypter.encrypt(file.uri.pathSegments.last, iv: iv).base16);
-
-  while (fileBytes.isNotEmpty) {
-    sendPacket(fileBytes, socket, encrypter, iv, packetCounter, totalPackets);
-    await Future.delayed(const Duration(milliseconds: 50));
-    packetCounter++;
+  
+  communicationData.currentFileHash = Object.hashAll(fileBytes);
+  communicationData.fileAcceptMap[communicationData.currentFileHash] = Completer<void>();
+  socket.write(communicationData.encrypter!.encrypt('SEND-FILE', iv: communicationData.iv).base16);
+  try {
+    await communicationData.fileAcceptMap[communicationData.currentFileHash]!.future.timeout(const Duration(seconds: 10));
+    socket.write(communicationData.encrypter!.encrypt(file.uri.pathSegments.last, iv: communicationData.iv).base16);
+    while (fileBytes.isNotEmpty) {
+      sendPacket(fileBytes, socket, communicationData.encrypter!, communicationData.iv!, packetCounter, totalPackets);
+      await Future.delayed(const Duration(milliseconds: 50));
+      packetCounter++;
+    }
+    socket.write(communicationData.encrypter!.encrypt('SENT', iv: communicationData.iv).base16);
+  } catch (e) {
+    print('FILE-ACCEPT not received within the timeout period');
+  } finally {
+    communicationData.fileAcceptMap.remove(communicationData.currentFileHash);
+    communicationData.currentFileHash = 0;
   }
-
-  socket.write(encrypter.encrypt('SENT', iv: iv).base16);
 }
 
 void sendPacket(
@@ -81,17 +86,20 @@ void handleCommunication(
       if (decryptedMessage == 'SEND-FILE') {
         socket.write(communicationData.encrypter!
             .encrypt('FILE-ACCEPT', iv: communicationData.iv)
-            .base16); //TODO accept conditionally
-        communicationData.currentState = CommunicationStates.filenameExpecation;
+            .base16);
+        communicationData.currentState = CommunicationStates.filenameExpectation;
         break;
       }
       break;
-
-    case CommunicationStates.filenameExpecation:
+    case CommunicationStates.fileAcceptExpectation:
+      if (decryptedMessage == 'FILE-ACCEPT') {
+        communicationData.fileAcceptMap[communicationData.currentFileHash]!.complete();
+      }
+      break;
+    case CommunicationStates.filenameExpectation:
       communicationData.filename = decryptedMessage;
       communicationData.currentState = CommunicationStates.receivingFile;
       break;
-
     case CommunicationStates.receivingFile:
       if (decryptedMessage == 'SENT') {
         saveBytesToFile(

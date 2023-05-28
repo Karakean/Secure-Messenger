@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:async/async.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:secure_messenger/logic/file_logic.dart';
+import 'package:secure_messenger/logic/communication_logic.dart';
 import 'package:secure_messenger/logic/handshake_logic.dart';
 
 import 'package:secure_messenger/models/user.dart';

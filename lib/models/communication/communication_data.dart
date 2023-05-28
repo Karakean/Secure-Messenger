@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:encrypt/encrypt.dart' as encrypt;
 
 enum CommunicationStates {
@@ -8,7 +10,8 @@ enum CommunicationStates {
   doneExpectation,
   doneAckExpectation,
   regular,
-  filenameExpecation,
+  fileAcceptExpectation,
+  filenameExpectation,
   receivingFile
 }
 
@@ -20,4 +23,7 @@ class CommunicationData {
   encrypt.IV? iv;
   List<int> fileBytesBuffer = [];
   String filename = '';
+
+  int currentFileHash = 0;
+  Map<int, Completer<void>> fileAcceptMap = {};
 }
