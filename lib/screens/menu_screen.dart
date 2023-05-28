@@ -7,6 +7,7 @@ import 'package:secure_messenger/models/user.dart';
 import 'package:secure_messenger/models/common.dart';
 import 'package:secure_messenger/screens/receive_screen.dart';
 import 'package:secure_messenger/screens/send_screen.dart';
+import 'package:secure_messenger/widgets/ecb_switch.dart';
 import 'package:secure_messenger/widgets/ip_adress_dropdown_menu.dart';
 
 class MenuScreen extends StatefulWidget {
@@ -46,27 +47,8 @@ class _MenuScreenState extends State<MenuScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text("Secure Messenger"),
-          actions: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 5),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text("CBC"),
-                  Switch(
-                    activeColor: Theme.of(context).colorScheme.surface,
-                    activeTrackColor: const Color(0x52000000),
-                    value: isECB,
-                    onChanged: (val) {
-                      setState(() {
-                        isECB = val;
-                      });
-                    },
-                  ),
-                  const Text("ECB"),
-                ],
-              ),
-            ),
+          actions: const [
+            EcbSwitch(),
           ],
         ),
         body: Center(

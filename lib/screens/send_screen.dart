@@ -31,18 +31,22 @@ class _SendScreenState extends State<SendScreen> {
     setState(() {
       _loading = true;
     });
-    var socket = await Socket.connect(destination, 2137);
-    CommunicationData communicationData = CommunicationData();
-    socket.listen(
+
+    final session = context.read<UserSession>();
+
+    session.clientSocket = await Socket.connect(destination, 2137);
+    session.data = CommunicationData();
+
+    session.clientSocket!.listen(
       (List<int> receivedData) {
-        if (communicationData.afterHandshake) {
-          handleCommunication(socket, communicationData, receivedData);
+        if (session.data.afterHandshake) {
+          handleCommunication(session.clientSocket!, session.data, receivedData);
         } else {
-          handleClientHandshake(context, socket, communicationData, receivedData);
+          handleClientHandshake(context, session.clientSocket!, session.data, receivedData);
         }
       },
     );
-    socket.write('SYN');
+    session.clientSocket!.write('SYN');
   }
 
   @override
@@ -51,6 +55,7 @@ class _SendScreenState extends State<SendScreen> {
     return WillPopScope(
       onWillPop: () async {
         clientFuture?.cancel();
+        userSession.clientSocket?.close();
         return true;
       },
       child: Scaffold(

@@ -105,17 +105,17 @@ void handleClientHandshake(
       ClientPackage clientPackage = ClientPackage(
         userSession.sessionKey!,
         "AES",
-        "CBC",
+        userSession.isECB ? "ECB" : "CBC",
         16,
         16,
         communicationData.iv!,
-      ); //TODO change to user chosen mode
+      );
       communicationData.encrypter = encrypt.Encrypter(
         encrypt.AES(
           userSession.sessionKey!,
-          mode: encrypt.AESMode.cbc,
+          mode: userSession.isECB ? encrypt.AESMode.ecb : encrypt.AESMode.cbc,
         ),
-      ); //TODO change to user chosen mode
+      );
       String encryptedPackage = rsa.encrypt(
         clientPackage.toString(),
         serverPublicKey,

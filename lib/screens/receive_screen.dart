@@ -27,9 +27,8 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      final userData = context.read<UserData>();
       serverFuture = CancelableOperation.fromFuture(
-        initializeServer(userData),
+        initializeServer(),
         //Future.delayed(const Duration(seconds: 5)),
       ).then(
         (value) => Navigator.pushReplacementNamed(context, ChatScreen.routeName),
@@ -37,18 +36,21 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
     });
   }
 
-  Future<void> initializeServer(UserData userData) async {
-    ServerSocket serverSocket = await ServerSocket.bind(userData.ipAddr, 2137);
+  Future<void> initializeServer() async {
+    final session = context.read<UserSession>();
+    final data = context.read<UserData>();
 
-    await for (Socket clientSocket in serverSocket) {
-      CommunicationData communicationData = CommunicationData();
+    session.serverSocket = await ServerSocket.bind(data.ipAddr, 2137);
+
+    await for (Socket clientSocket in session.serverSocket!) {
+      session.data = CommunicationData();
       clientSocket.listen(
         (List<int> receivedData) {
-          if (communicationData.afterHandshake) {
+          if (session.data.afterHandshake) {
             //split or smth idk
-            handleCommunication(clientSocket, communicationData, receivedData);
+            handleCommunication(clientSocket, session.data, receivedData);
           } else {
-            handleServerHandshake(context, clientSocket, communicationData, receivedData);
+            handleServerHandshake(context, clientSocket, session.data, receivedData);
           }
         },
       );
@@ -63,23 +65,30 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
   @override
   Widget build(BuildContext context) {
     final userSession = context.watch<UserSession>();
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Listen for connections"),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            userSession.sessionKey != null
-                ? Text(
-                    "Your session key is: ${userSession.sessionKey!.base64}") //Krzychu wez to wyrzuc co to tu wgl robi
-                : const CircularProgressIndicator(),
-            Text(
-              "Listening for connections...",
-              style: Theme.of(context).textTheme.titleLarge,
-            )
-          ],
+    return WillPopScope(
+      onWillPop: () async {
+        serverFuture.cancel();
+        userSession.serverSocket?.close();
+        return true;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text("Listen for connections"),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              userSession.sessionKey != null
+                  ? Text(
+                      "Your session key is: ${userSession.sessionKey!.base64}") //Krzychu wez to wyrzuc co to tu wgl robi
+                  : const CircularProgressIndicator(),
+              Text(
+                "Listening for connections...",
+                style: Theme.of(context).textTheme.titleLarge,
+              )
+            ],
+          ),
         ),
       ),
     );
