@@ -34,30 +34,30 @@ class ClientPackage {
 
     final sessionKeyBytes = encrypt.Key.fromBase64(sessionKeyBase64).bytes;
     if (sessionKeyBytes.length != 16) {
-      throw FormatException('Invalid session key length');
+      throw const FormatException('Invalid session key length');
     }
     final sessionKey = encrypt.Key.fromBase64(sessionKeyBase64);
 
     final ivBytes = encrypt.IV.fromBase64(ivBase64).bytes;
     if (ivBytes.length != 16) {
-      throw FormatException('Invalid IV length');
+      throw const FormatException('Invalid IV length');
     }
     final iv = encrypt.IV.fromBase64(ivBase64);
-    
+
     if (algorithmType != 'AES') {
-      throw FormatException('Invalid algorithm type');
+      throw const FormatException('Invalid algorithm type');
     }
 
     if (cipherMode != 'CBC' && cipherMode != 'ECB') {
-      throw FormatException('Invalid cipher mode');
+      throw const FormatException('Invalid cipher mode');
     }
 
     if (keySize != 16) {
-      throw FormatException('Invalid key size');
+      throw const FormatException('Invalid key size');
     }
 
     if (blockSize != 16) {
-      throw FormatException('Invalid block size');
+      throw const FormatException('Invalid block size');
     }
 
     return ClientPackage(

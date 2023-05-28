@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:encrypt/encrypt.dart' as encrypt;
+import 'package:secure_messenger/models/common.dart';
 
 enum CommunicationStates {
   initial,
@@ -18,6 +19,7 @@ enum CommunicationStates {
 
 class CommunicationData {
   CommunicationStates currentState = CommunicationStates.initial;
+  bool afterHandshake = false;
 
   encrypt.Encrypter? encrypter;
   encrypt.IV? iv;
@@ -26,10 +28,11 @@ class CommunicationData {
 }
 
 class CommunicationHelper {
-  static const packetSize = 1024 * 1024; // 1MB
+  static const packetSize = 1024;
 
   Future<void> saveBytesToFile(List<int> bytes, String filePath) async {
-    final file = File(filePath);
+    final path = await getLocalPath();
+    final file = File('$path/$filePath');
     await file.writeAsBytes(bytes);
     print('File saved: $filePath'); //TODO mozna wyrzucic potem
   }
@@ -40,32 +43,50 @@ class CommunicationHelper {
     final totalPackets = (fileBytes.length / packetSize).ceil();
     int packetCounter = 0;
     socket.write(encrypter.encrypt('SEND-FILE', iv: iv).base16);
+    await Future.delayed(const Duration(milliseconds: 250));
     socket.write(encrypter.encrypt(file.uri.pathSegments.last, iv: iv).base16);
     while (fileBytes.isNotEmpty) {
       sendPacket(fileBytes, socket, encrypter, iv, packetCounter, totalPackets);
+      await Future.delayed(const Duration(milliseconds: 50));
+      packetCounter++;
+      //break;
     }
     socket.write(encrypter.encrypt('SENT', iv: iv).base16);
   }
 
-  void sendPacket(List<int> fileBytes, Socket socket, encrypt.Encrypter encrypter, encrypt.IV iv, int packetCounter, int totalPackets) {
+  void sendPacket(List<int> fileBytes, Socket socket, encrypt.Encrypter encrypter, encrypt.IV iv,
+      int packetCounter, int totalPackets) {
     final packetEndIdx = fileBytes.length < packetSize ? fileBytes.length : packetSize;
     final dataChunk = fileBytes.sublist(0, packetEndIdx);
-    socket.add(encrypter.encryptBytes(dataChunk, iv: iv).bytes);
+    final encryptedChunk = encrypter.encryptBytes(dataChunk, iv: iv).bytes;
+    socket.add(encryptedChunk);
     fileBytes.removeRange(0, packetEndIdx);
-    packetCounter++;
-    print("Sending in progress (${(packetCounter / totalPackets) * 100}%)"); //TODO zamienic na fajny paseczek
+
+    print(
+        "Sending in progress (${(packetCounter / totalPackets) * 100}%)"); //TODO zamienic na fajny paseczek
   }
 
-  void handleCommunication(Socket socket, CommunicationData communicationData, List<int> receivedData) {
-    String decryptedMessage = communicationData.encrypter!.decrypt16(utf8.decode(receivedData), iv: communicationData.iv);
+  void handleCommunication(
+      Socket socket, CommunicationData communicationData, List<int> receivedData) {
+    String decryptedMessage = "";
+    try {
+      decryptedMessage = communicationData.encrypter!.decrypt16(
+        utf8.decode(receivedData, allowMalformed: true),
+        iv: communicationData.iv,
+      );
+    } catch (e) {
+      print("$e | secure_messenger ignore");
+    }
+
     switch (communicationData.currentState) {
       case CommunicationStates.regular:
         if (decryptedMessage == 'SEND-FILE') {
-          socket.write(communicationData.encrypter!.encrypt('FILE-ACCEPT', iv: communicationData.iv).base16); //TODO accept conditionally
+          socket.write(communicationData.encrypter!
+              .encrypt('FILE-ACCEPT', iv: communicationData.iv)
+              .base16); //TODO accept conditionally
           communicationData.currentState = CommunicationStates.filenameExpecation;
           break;
         }
-        print(decryptedMessage); //regular message
         break;
       case CommunicationStates.filenameExpecation:
         communicationData.filename = decryptedMessage;
@@ -73,7 +94,8 @@ class CommunicationHelper {
         break;
       case CommunicationStates.receivingFile:
         if (decryptedMessage == 'SENT') {
-          saveBytesToFile(communicationData.fileBytesBuffer, communicationData.filename); //TODO dodac prawidlowa sciezke
+          saveBytesToFile(communicationData.fileBytesBuffer,
+              communicationData.filename); //TODO dodac prawidlowa sciezke
           communicationData.currentState = CommunicationStates.regular;
           break;
         } else if (decryptedMessage == 'INTERRUPT') {
@@ -81,7 +103,9 @@ class CommunicationHelper {
           communicationData.currentState = CommunicationStates.regular;
           break;
         }
-        List<int> decryptedData = communicationData.encrypter!.decryptBytes(encrypt.Encrypted(Uint8List.fromList(receivedData)), iv: communicationData.iv);
+        List<int> decryptedData = communicationData.encrypter!.decryptBytes(
+            encrypt.Encrypted(Uint8List.fromList(receivedData)),
+            iv: communicationData.iv);
         communicationData.fileBytesBuffer.addAll(decryptedData);
         break;
       default:
@@ -89,11 +113,9 @@ class CommunicationHelper {
     }
   }
 
-
-
-
-  void test(encrypt.Encrypter encrypter, encrypt.IV iv) async { //TODO remove it in the future, it is only for 
-  // testing purposes
+  void test(encrypt.Encrypter encrypter, encrypt.IV iv) async {
+    //TODO remove it in the future, it is only for
+    // testing purposes
     print('HELLO');
     Uint8List orgbytes = await File('bird.avi').readAsBytes();
     var bytes = orgbytes.toList();
@@ -117,7 +139,8 @@ class CommunicationHelper {
       }
       final dataChunk = bytes.sublist(0, packetEndIdx);
       List<int> encryptedChunk = encrypter.encryptBytes(dataChunk, iv: iv).bytes.toList();
-      List<int> decryptedChunk = encrypter.decryptBytes(encrypt.Encrypted(Uint8List.fromList(encryptedChunk)), iv: iv);
+      List<int> decryptedChunk =
+          encrypter.decryptBytes(encrypt.Encrypted(Uint8List.fromList(encryptedChunk)), iv: iv);
       fileBuffer.addAll(decryptedChunk);
       bytes.removeRange(0, packetEndIdx);
       packetCounter++;
@@ -126,5 +149,3 @@ class CommunicationHelper {
     saveBytesToFile(fileBuffer, 'bird2.avi');
   }
 }
-
-

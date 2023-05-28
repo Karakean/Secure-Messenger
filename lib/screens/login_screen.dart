@@ -1,15 +1,19 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:pointycastle/pointycastle.dart' as rsa;
 import 'package:provider/provider.dart';
 import 'package:crypto/crypto.dart';
+import 'package:secure_messenger/models/common.dart';
+import 'package:secure_messenger/screens/menu_screen.dart';
+import 'package:secure_messenger/widgets/custom_field.dart';
 
 import '../models/user.dart';
 import '../models/rsa_key_helper.dart';
 
 class LoginScreen extends StatefulWidget {
-  static const routeName = "/login";
+  static const routeName = "/";
 
   const LoginScreen({super.key});
 
@@ -69,132 +73,120 @@ class _LoginScreenState extends State<LoginScreen> {
       final userData = context.read<UserData>();
       userData.keyPair = keyPair;
 
-      // ? dziwne ale wychodzi na to ze menu jest by default na stacku pod loginem
-      Navigator.of(context).pop();
+      Navigator.of(context).pushReplacementNamed(MenuScreen.routeName);
     }
   }
 
+  Future<String> path = getLocalPath();
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.primary,
-      body: Center(
-        child: SizedBox(
-          width: MediaQuery.of(context).size.width * 0.7,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                "Secure Messenger",
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    CustomField(
-                      visible: !_isLogin,
-                      child: TextFormField(
-                        enabled: !_isLogin,
-                        decoration: const InputDecoration(
-                          border: InputBorder.none,
-                          hintText: "Username",
-                        ),
-                        validator: (value) {
-                          if (_isLogin) return null;
-                          if (value == null || value.isEmpty || value.characters.length < 4) {
-                            return "Enter at least 4 characters";
-                          }
-                          return null;
-                        },
-                        onSaved: (newValue) {
-                          _login = newValue!;
-                        },
-                      ),
-                    ),
-                    CustomField(
-                      child: TextFormField(
-                        enabled: true,
-                        controller: _passwordController,
-                        obscureText: true,
-                        decoration: const InputDecoration(
-                          border: InputBorder.none,
-                          hintText: "Password",
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty || value.characters.length < 4) {
-                            return "Enter at least 4 characters";
-                          }
-                          return null;
-                        },
-                        onSaved: (newValue) {
-                          _password = newValue!;
-                        },
-                      ),
-                    ),
-                    CustomField(
-                      visible: !_isLogin,
-                      child: TextFormField(
-                        enabled: !_isLogin,
-                        obscureText: true,
-                        decoration: const InputDecoration(
-                          border: InputBorder.none,
-                          hintText: "Repeat password",
-                        ),
-                        validator: (value) {
-                          if (_isLogin) return null;
-                          if (_passwordController.text != value) {
-                            return "Passwords do not match";
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                  ],
+    return WillPopScope(
+      onWillPop: () async => false,
+      child: Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        body: Center(
+          child: SizedBox(
+            width: MediaQuery.of(context).size.width * 0.7,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                FutureBuilder(
+                  future: path,
+                  builder: (context, snapshot) => Image.file(File('${snapshot.data!}/xdd.jpeg')),
                 ),
-              ),
-              ElevatedButton(
-                onPressed: _submit,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.black,
-                  elevation: 10,
+                Text(
+                  "Secure Messenger",
+                  style: Theme.of(context).textTheme.headlineSmall,
                 ),
-                child: Text(_isLogin ? "Log in" : "Register"),
-              ),
-              TextButton(
-                onPressed: () {
-                  setState(() {
-                    _isLogin = !_isLogin;
-                  });
-                },
-                child: Text(
-                  _isLogin ? "I want to register." : "I want to log in.",
-                  style: const TextStyle(color: Colors.black),
+                Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      CustomField(
+                        visible: !_isLogin,
+                        child: TextFormField(
+                          enabled: !_isLogin,
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            hintText: "Username",
+                          ),
+                          validator: (value) {
+                            if (_isLogin) return null;
+                            if (value == null || value.isEmpty || value.characters.length < 4) {
+                              return "Enter at least 4 characters";
+                            }
+                            return null;
+                          },
+                          onSaved: (newValue) {
+                            _login = newValue!;
+                          },
+                        ),
+                      ),
+                      CustomField(
+                        child: TextFormField(
+                          enabled: true,
+                          controller: _passwordController,
+                          obscureText: true,
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            hintText: "Password",
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty || value.characters.length < 4) {
+                              return "Enter at least 4 characters";
+                            }
+                            return null;
+                          },
+                          onSaved: (newValue) {
+                            _password = newValue!;
+                          },
+                        ),
+                      ),
+                      CustomField(
+                        visible: !_isLogin,
+                        child: TextFormField(
+                          enabled: !_isLogin,
+                          obscureText: true,
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            hintText: "Repeat password",
+                          ),
+                          validator: (value) {
+                            if (_isLogin) return null;
+                            if (_passwordController.text != value) {
+                              return "Passwords do not match";
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+                ElevatedButton(
+                  onPressed: _submit,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
+                    elevation: 10,
+                  ),
+                  child: Text(_isLogin ? "Log in" : "Register"),
+                ),
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _isLogin = !_isLogin;
+                    });
+                  },
+                  child: Text(
+                    _isLogin ? "I want to register." : "I want to log in.",
+                    style: const TextStyle(color: Colors.black),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class CustomField extends StatelessWidget {
-  final Widget child;
-  final bool visible;
-
-  const CustomField({this.visible = true, required this.child, super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      constraints: BoxConstraints(maxHeight: visible ? double.infinity : 0),
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-          child: child,
         ),
       ),
     );
