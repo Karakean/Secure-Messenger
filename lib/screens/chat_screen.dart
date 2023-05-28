@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+
 import 'package:secure_messenger/widgets/messages.dart';
 import 'package:secure_messenger/widgets/chatbox.dart';
 
 class ChatScreen extends StatefulWidget {
-  static const routeName = '/chat';
   const ChatScreen({super.key});
+
+  static const routeName = '/chat';
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();

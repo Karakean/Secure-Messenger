@@ -3,26 +3,14 @@ import 'dart:convert';
 import 'package:encrypt/encrypt.dart' as encrypt;
 
 class ClientPackage {
-  encrypt.Key sessionKey;
-  String algorithmType;
-  String cipherMode;
-  int keySize; // in bytes
-  int blockSize; // in bytes
-  encrypt.IV iv;
-
   ClientPackage(
-      this.sessionKey, this.algorithmType, this.cipherMode, this.keySize, this.blockSize, this.iv);
-
-  Map<String, dynamic> entityToDtoMapper() {
-    return {
-      'sessionKey': sessionKey.base64,
-      'algorithmType': algorithmType,
-      'cipherMode': cipherMode,
-      'keySize': keySize,
-      'blockSize': blockSize,
-      'iv': iv.base64,
-    };
-  }
+    this.sessionKey,
+    this.algorithmType,
+    this.cipherMode,
+    this.keySize,
+    this.blockSize,
+    this.iv,
+  );
 
   factory ClientPackage.dtoToEntityMapper(Map<String, dynamic> dto) {
     final sessionKeyBase64 = dto['sessionKey'] as String;
@@ -70,10 +58,28 @@ class ClientPackage {
     );
   }
 
+  String algorithmType;
+  int blockSize; // in bytes
+  String cipherMode;
+  encrypt.IV iv;
+  int keySize; // in bytes
+  encrypt.Key sessionKey;
+
   @override
   String toString() {
     final dto = entityToDtoMapper();
     return json.encode(dto);
+  }
+
+  Map<String, dynamic> entityToDtoMapper() {
+    return {
+      'sessionKey': sessionKey.base64,
+      'algorithmType': algorithmType,
+      'cipherMode': cipherMode,
+      'keySize': keySize,
+      'blockSize': blockSize,
+      'iv': iv.base64,
+    };
   }
 
   static ClientPackage fromString(String plaintext) {
