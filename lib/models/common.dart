@@ -8,10 +8,10 @@ Future<String> getLocalPath() async {
 }
 
 class InterfaceAndAddress {
-  final NetworkInterface interface;
-  final InternetAddress address;
-
   InterfaceAndAddress(this.interface, this.address);
+
+  final InternetAddress address;
+  final NetworkInterface interface;
 
   // @override
   // bool operator ==(dynamic other) => other?.interface == interface && address == other?.address;

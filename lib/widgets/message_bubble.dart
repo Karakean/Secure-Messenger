@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 
 class MessageBubble extends StatelessWidget {
-  final String message;
-  final String username;
-  final bool isMe;
-
   const MessageBubble(
     this.message,
     this.username,
     this.isMe, {
     super.key,
   });
+
+  final bool isMe;
+  final String message;
+  final String username;
 
   @override
   Widget build(BuildContext context) {

@@ -10,18 +10,18 @@ import 'package:secure_messenger/screens/send_screen.dart';
 import 'package:secure_messenger/widgets/ip_adress_dropdown_menu.dart';
 
 class MenuScreen extends StatefulWidget {
-  static const routeName = "/menu";
-
   const MenuScreen({super.key});
+
+  static const routeName = "/menu";
 
   @override
   State<MenuScreen> createState() => _MenuScreenState();
 }
 
 class _MenuScreenState extends State<MenuScreen> {
-  InterfaceAndAddress? selectedValue;
-  late Future optionsFuture = _getOptions();
   bool isECB = false;
+  late Future optionsFuture = _getOptions();
+  InterfaceAndAddress? selectedValue;
 
   Future<List<InterfaceAndAddress>> _getOptions() async {
     final List<InterfaceAndAddress> items = [];

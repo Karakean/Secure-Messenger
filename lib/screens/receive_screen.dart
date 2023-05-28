@@ -11,9 +11,9 @@ import 'package:secure_messenger/screens/chat_screen.dart';
 import 'package:secure_messenger/models/communication/communication_data.dart';
 
 class ReceiveScreen extends StatefulWidget {
-  static const routeName = "/receive";
-
   const ReceiveScreen({super.key});
+
+  static const routeName = "/receive";
 
   @override
   State<ReceiveScreen> createState() => _ReceiveScreenState();

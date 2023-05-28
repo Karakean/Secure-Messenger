@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:secure_messenger/models/common.dart';
 
 class IpAdressDrowdownMenu extends StatelessWidget {
+  const IpAdressDrowdownMenu({this.value, required this.values, this.callback, super.key});
+
+  final Function(InterfaceAndAddress?)? callback;
   final InterfaceAndAddress? value;
   final List<InterfaceAndAddress> values;
-  final Function(InterfaceAndAddress?)? callback;
-
-  const IpAdressDrowdownMenu({this.value, required this.values, this.callback, super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -12,19 +12,19 @@ import 'package:secure_messenger/screens/chat_screen.dart';
 import 'package:secure_messenger/widgets/custom_field.dart';
 
 class SendScreen extends StatefulWidget {
-  static const routeName = "/send";
-
   const SendScreen({super.key});
+
+  static const routeName = "/send";
 
   @override
   State<SendScreen> createState() => _SendScreenState();
 }
 
 class _SendScreenState extends State<SendScreen> {
-  final _formKey = GlobalKey<FormState>();
-
   CancelableOperation? clientFuture;
   String? destination;
+
+  final _formKey = GlobalKey<FormState>();
   bool _loading = false;
 
   Future<void> connectToServer() async {

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 class CustomField extends StatelessWidget {
+  const CustomField({this.visible = true, required this.child, super.key});
+
   final Widget child;
   final bool visible;
-
-  const CustomField({this.visible = true, required this.child, super.key});
 
   @override
   Widget build(BuildContext context) {

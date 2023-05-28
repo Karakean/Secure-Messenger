@@ -13,34 +13,36 @@ import 'package:secure_messenger/models/user.dart';
 import 'package:secure_messenger/models/communication/rsa_key_helper.dart';
 
 class LoginScreen extends StatefulWidget {
-  static const routeName = "/";
-
   const LoginScreen({super.key});
+
+  static const routeName = "/";
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _passwordController;
+  final Future<String> path = getLocalPath();
   final RsaKeyHelper rsaKeyHelper = RsaKeyHelper();
 
+  final _formKey = GlobalKey<FormState>();
   bool _isLogin = true;
   // ignore: unused_field
   String _login = '';
   String _password = '';
 
-  @override
-  void initState() {
-    super.initState();
-    _passwordController = TextEditingController();
-  }
+  late final TextEditingController _passwordController;
 
   @override
   void dispose() {
     _passwordController.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _passwordController = TextEditingController();
   }
 
   void _submit() async {
@@ -76,8 +78,6 @@ class _LoginScreenState extends State<LoginScreen> {
       Navigator.of(context).pushReplacementNamed(MenuScreen.routeName);
     }
   }
-
-  final Future<String> path = getLocalPath();
 
   @override
   Widget build(BuildContext context) {
