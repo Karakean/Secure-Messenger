@@ -1,24 +1,20 @@
 import 'dart:io';
 import 'dart:convert';
 import 'package:encrypt/encrypt.dart' as encrypt;
-import 'package:flutter/material.dart';
 import 'package:pointycastle/export.dart';
-import 'package:provider/provider.dart';
+import 'package:secure_messenger/models/common.dart';
 
-import 'package:secure_messenger/models/communication/rsa_key_helper.dart';
 import 'package:secure_messenger/models/communication/client_package.dart';
 import 'package:secure_messenger/models/communication/communication_data.dart';
-import 'package:secure_messenger/models/user.dart';
-import 'package:secure_messenger/logic/file_logic.dart';
 
 void handleServerHandshake(
-  BuildContext context,
+  Providers providers,
   Socket socket,
-  CommunicationData communicationData,
   List<int> receivedData,
 ) {
-  final rsa = context.read<RsaKeyHelper>();
-  final userData = context.read<UserData>();
+  final rsa = providers.rsa;
+  final userData = providers.user;
+  final communicationData = providers.session.data;
   final decodedData = utf8.decode(receivedData, allowMalformed: true);
 
   switch (communicationData.currentState) {
@@ -66,6 +62,7 @@ void handleServerHandshake(
       if (decryptedData == 'DONE-ACK') {
         communicationData.currentState = CommunicationStates.regular;
         communicationData.afterHandshake = true;
+        print("ELO");
         break;
       }
       break;
@@ -76,12 +73,13 @@ void handleServerHandshake(
 }
 
 void handleClientHandshake(
-  BuildContext context,
+  Providers providers,
   Socket socket,
-  CommunicationData communicationData,
   List<int> receivedData,
 ) {
-  final rsa = context.read<RsaKeyHelper>();
+  final rsa = providers.rsa;
+  final communicationData = providers.session.data;
+  final userSession = providers.session;
 
   final decodedData = utf8.decode(receivedData);
 
@@ -98,7 +96,6 @@ void handleClientHandshake(
 
     case CommunicationStates.keyExpectation:
       final RSAPublicKey serverPublicKey = rsa.parsePublicKeyFromPem(decodedData);
-      final UserSession userSession = context.read<UserSession>();
 
       userSession.generateSessionKey();
       communicationData.iv = encrypt.IV.fromSecureRandom(16);
@@ -139,12 +136,12 @@ void handleClientHandshake(
         communicationData.afterHandshake = true;
 
         print("sending file");
-        sendFile(
-          File("/home/kulpas/Desktop/xdd.jpeg"),
-          socket,
-          communicationData.encrypter!,
-          communicationData.iv!,
-        );
+        // sendFile(
+        //   File("/home/kulpas/Desktop/xdd.jpeg"),
+        //   socket,
+        //   communicationData.encrypter!,
+        //   communicationData.iv!,
+        // );
 
         return;
       }

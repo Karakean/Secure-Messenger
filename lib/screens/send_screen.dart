@@ -4,9 +4,10 @@ import 'package:async/async.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:secure_messenger/logic/file_logic.dart';
-import 'package:secure_messenger/logic/handshake_logic.dart';
+import 'package:secure_messenger/logic/sockets.dart';
+import 'package:secure_messenger/models/common.dart';
 import 'package:secure_messenger/models/communication/communication_data.dart';
+import 'package:secure_messenger/models/communication/rsa_key_helper.dart';
 import 'package:secure_messenger/models/user.dart';
 import 'package:secure_messenger/screens/chat_screen.dart';
 import 'package:secure_messenger/widgets/custom_field.dart';
@@ -33,20 +34,16 @@ class _SendScreenState extends State<SendScreen> {
     });
 
     final session = context.read<UserSession>();
+    final data = context.read<UserData>();
+    final rsa = context.read<RsaKeyHelper>();
 
-    session.clientSocket = await Socket.connect(destination, 2137);
+    final providers = Providers(user: data, session: session, rsa: rsa);
+
     session.data = CommunicationData();
+    final socket = await Socket.connect(destination, 2137);
+    session.client = ThingThatTalksToServer(socket, providers);
 
-    session.clientSocket!.listen(
-      (List<int> receivedData) {
-        if (session.data.afterHandshake) {
-          handleCommunication(session.clientSocket!, session.data, receivedData);
-        } else {
-          handleClientHandshake(context, session.clientSocket!, session.data, receivedData);
-        }
-      },
-    );
-    session.clientSocket!.write('SYN');
+    session.client!.socket.write('SYN');
   }
 
   @override
@@ -55,7 +52,7 @@ class _SendScreenState extends State<SendScreen> {
     return WillPopScope(
       onWillPop: () async {
         clientFuture?.cancel();
-        userSession.clientSocket?.close();
+        userSession.client?.close();
         return true;
       },
       child: Scaffold(

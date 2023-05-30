@@ -3,12 +3,12 @@ import 'dart:io';
 import 'package:async/async.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:secure_messenger/logic/file_logic.dart';
-import 'package:secure_messenger/logic/handshake_logic.dart';
+import 'package:secure_messenger/logic/sockets.dart';
+import 'package:secure_messenger/models/common.dart';
+import 'package:secure_messenger/models/communication/rsa_key_helper.dart';
 
 import 'package:secure_messenger/models/user.dart';
 import 'package:secure_messenger/screens/chat_screen.dart';
-import 'package:secure_messenger/models/communication/communication_data.dart';
 
 class ReceiveScreen extends StatefulWidget {
   const ReceiveScreen({super.key});
@@ -39,27 +39,12 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
   Future<void> initializeServer() async {
     final session = context.read<UserSession>();
     final data = context.read<UserData>();
+    final rsa = context.read<RsaKeyHelper>();
 
-    session.serverSocket = await ServerSocket.bind(data.ipAddr, 2137);
+    final providers = Providers(user: data, session: session, rsa: rsa);
 
-    await for (Socket clientSocket in session.serverSocket!) {
-      session.data = CommunicationData();
-      clientSocket.listen(
-        (List<int> receivedData) {
-          if (session.data.afterHandshake) {
-            //split or smth idk
-            handleCommunication(clientSocket, session.data, receivedData);
-          } else {
-            handleServerHandshake(context, clientSocket, session.data, receivedData);
-          }
-        },
-      );
-
-      await clientSocket.done;
-      print(
-        'Client disconnected: ${clientSocket.remoteAddress.address}:${clientSocket.remotePort}',
-      );
-    }
+    final socket = await ServerSocket.bind(data.ipAddr, 2137);
+    session.server = ThingThatIsTheServer(socket, providers);
   }
 
   @override
@@ -67,8 +52,8 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
     final userSession = context.watch<UserSession>();
     return WillPopScope(
       onWillPop: () async {
-        serverFuture.cancel();
-        userSession.serverSocket?.close();
+        await serverFuture.cancel();
+        await userSession.server?.close();
         return true;
       },
       child: Scaffold(

@@ -62,10 +62,12 @@ void sendPacket(
 }
 
 void handleCommunication(
+  Providers providers,
   Socket socket,
-  CommunicationData communicationData,
   List<int> receivedData,
 ) {
+  final communicationData = providers.session.data;
+
   String decryptedMessage = "";
   try {
     decryptedMessage = communicationData.encrypter!.decrypt16(
