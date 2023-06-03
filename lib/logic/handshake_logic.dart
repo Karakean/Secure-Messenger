@@ -9,7 +9,9 @@ import 'package:secure_messenger/models/communication/rsa_key_helper.dart';
 import 'package:secure_messenger/models/communication/client_package.dart';
 import 'package:secure_messenger/models/communication/communication_data.dart';
 import 'package:secure_messenger/models/user.dart';
-import 'package:secure_messenger/logic/file_logic.dart';
+import 'package:secure_messenger/logic/communication_logic.dart';
+
+import '../models/communication/file_data.dart';
 
 void handleServerHandshake(
   BuildContext context,
@@ -80,6 +82,7 @@ void handleClientHandshake(
   Socket socket,
   CommunicationData communicationData,
   List<int> receivedData,
+  FileSendData fileSendData //TODO remove
 ) {
   final rsa = context.read<RsaKeyHelper>();
 
@@ -141,9 +144,9 @@ void handleClientHandshake(
         print("sending file");
         sendFile(
           File("/home/kulpas/Desktop/xdd.jpeg"),
-          socket,
-          communicationData.encrypter!,
-          communicationData.iv!,
+          fileSendData,
+          communicationData,
+          socket
         );
 
         return;

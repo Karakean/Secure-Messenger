@@ -7,17 +7,15 @@ enum CommunicationStates {
   packageExpectation,
   doneExpectation,
   doneAckExpectation,
-  regular,
-  filenameExpecation,
-  receivingFile
+  sendingFile,
+  receivingFile,
+  fileAcceptExpectation,
+  regular
 }
 
 class CommunicationData {
   CommunicationStates currentState = CommunicationStates.initial;
   bool afterHandshake = false;
-
   encrypt.Encrypter? encrypter;
   encrypt.IV? iv;
-  List<int> fileBytesBuffer = [];
-  String filename = '';
 }
