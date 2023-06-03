@@ -37,15 +37,16 @@ class _SendScreenState extends State<SendScreen> {
     final session = context.read<UserSession>();
 
     session.clientSocket = await Socket.connect(destination, 2137);
-    session.communicationData = CommunicationData();
-    session.fileData = FileData();
+    session.communicationData = CommunicationData(); //TODO verify if this initialization is not redundant bo imo jest krzychu skoro to inicjalizujemy w userze xd
+    session.fileSendData = FileSendData(); //TODO verify if this initialization is not redundant bo imo jest krzychu skoro to inicjalizujemy w userze xd
+    session.fileReceiveData = FileReceiveData(); //TODO verify if this initialization is not redundant bo imo jest krzychu skoro to inicjalizujemy w userze xd
 
     session.clientSocket!.listen(
       (List<int> receivedData) {
         if (session.communicationData.afterHandshake) {
-          handleCommunication(session.clientSocket!, session.communicationData, session.fileData, receivedData);
+          handleCommunication(session.clientSocket!, session.communicationData, session.fileSendData, session.fileReceiveData, receivedData);
         } else {
-          handleClientHandshake(context, session.clientSocket!, session.communicationData, receivedData, session.fileData);
+          handleClientHandshake(context, session.clientSocket!, session.communicationData, receivedData, session.fileSendData);
         }
       },
     );

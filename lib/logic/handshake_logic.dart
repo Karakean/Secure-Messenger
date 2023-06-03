@@ -82,7 +82,7 @@ void handleClientHandshake(
   Socket socket,
   CommunicationData communicationData,
   List<int> receivedData,
-  FileData fileData //TODO remove
+  FileSendData fileSendData //TODO remove
 ) {
   final rsa = context.read<RsaKeyHelper>();
 
@@ -144,7 +144,7 @@ void handleClientHandshake(
         print("sending file");
         sendFile(
           File("/home/kulpas/Desktop/xdd.jpeg"),
-          fileData,
+          fileSendData,
           communicationData,
           socket
         );

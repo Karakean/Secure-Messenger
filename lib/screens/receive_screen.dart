@@ -44,13 +44,14 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
     session.serverSocket = await ServerSocket.bind(data.ipAddr, 2137);
 
     await for (Socket clientSocket in session.serverSocket!) {
-      session.communicationData = CommunicationData();
-      session.fileData = FileData();
+      session.communicationData = CommunicationData(); //TODO verify if this initialization is not redundant bo imo jest krzychu skoro to inicjalizujemy w userze xd
+      session.fileSendData = FileSendData(); //TODO verify if this initialization is not redundant bo imo jest krzychu skoro to inicjalizujemy w userze xd
+      session.fileReceiveData = FileReceiveData(); //TODO verify if this initialization is not redundant bo imo jest krzychu skoro to inicjalizujemy w userze xd
       clientSocket.listen(
         (List<int> receivedData) {
           if (session.communicationData.afterHandshake) {
             //split or smth idk
-            handleCommunication(clientSocket, session.communicationData, session.fileData, receivedData);
+            handleCommunication(clientSocket, session.communicationData, session.fileSendData, session.fileReceiveData, receivedData);
           } else {
             handleServerHandshake(context, clientSocket, session.communicationData, receivedData);
           }

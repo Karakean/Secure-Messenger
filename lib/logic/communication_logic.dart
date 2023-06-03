@@ -23,7 +23,7 @@ Future<void> saveBytesToFile(List<int> bytes, String filePath) async {
 
 void sendFile(
   File file,
-  FileData fileData,
+  FileSendData fileSendData,
   CommunicationData communicationData,
   Socket socket
 ) async {
@@ -32,33 +32,30 @@ void sendFile(
   final int totalPackets = (fileBytes.length / kPacketSize).ceil();
   int packetCounter = 0;
 
-  fileData.fileAcceptId = UniqueKey().hashCode;
-  fileData.fileReceivedId = UniqueKey().hashCode;
-  fileData.completersMap[fileData.fileAcceptId] = Completer<void>();
-  fileData.completersMap[fileData.fileReceivedId] = Completer<void>();
-  fileData.fileName = file.uri.pathSegments.last;
-  fileData.fileSize = fileBytes.length;
-  socket.write(communicationData.encrypter!.encrypt('SEND-FILE/${fileData.fileName}/${fileData.fileSize}', iv: communicationData.iv).base16);
+  fileSendData.fileAcceptId = UniqueKey().hashCode;
+  fileSendData.fileReceivedId = UniqueKey().hashCode;
+  fileSendData.completersMap[fileSendData.fileAcceptId] = Completer<void>();
+  fileSendData.completersMap[fileSendData.fileReceivedId] = Completer<void>();
+  fileSendData.fileName = file.uri.pathSegments.last;
+  fileSendData.fileSize = fileBytes.length;
   communicationData.currentState = CommunicationStates.fileAcceptExpectation;
+  socket.write(communicationData.encrypter!.encrypt('SEND-FILE/${fileSendData.fileName}/${fileSendData.fileSize}', iv: communicationData.iv).base16);
   try {
-    await fileData.completersMap[fileData.fileAcceptId]!.future.timeout(const Duration(seconds: 10));
+    await fileSendData.completersMap[fileSendData.fileAcceptId]!.future.timeout(const Duration(seconds: 10));
 
     while (fileBytes.isNotEmpty) {
+      fileSendData.completersMap[packetCounter] = Completer<void>();
       sendPacket(fileBytes, socket, communicationData.encrypter!, communicationData.iv!, packetCounter, totalPackets);
-      packetCounter++;
+      await fileSendData.completersMap[packetCounter++]!.future.timeout(const Duration(seconds: 10));
     }
 
-    await fileData.completersMap[fileData.fileReceivedId]!.future.timeout(const Duration(seconds: 10));
+    await fileSendData.completersMap[fileSendData.fileReceivedId]!.future.timeout(const Duration(seconds: 10));
     print("Wyslano"); //TODO change to popup
   } on TimeoutException catch (e) {
-    if (fileData.completersMap[fileData.fileAcceptId]!.isCompleted) {
-      print('FILE-RECEIVED not received within the timeout period.');
-    } else {
-      print('FILE-ACCEPT not received within the timeout period.');
-    }
+    print('Timeout occured during file sending.');
   } finally {
     communicationData.currentState = CommunicationStates.regular;
-    fileData.clear();
+    fileSendData.clear();
   }
 }
 
@@ -94,7 +91,7 @@ String formatFileSize(int x) {
   }
 }
 
-void handleCommunication(Socket socket, CommunicationData communicationData, FileData fileData, List<int> receivedData) {
+void handleCommunication(Socket socket, CommunicationData communicationData, FileSendData fileSendData, FileReceiveData fileReceiveData, List<int> receivedData) {
   String decryptedMessage = "";
   try {
     decryptedMessage = communicationData.encrypter!.decrypt16(
@@ -115,8 +112,8 @@ void handleCommunication(Socket socket, CommunicationData communicationData, Fil
         socket.write(communicationData.encrypter!
             .encrypt('FILE-ACCEPT', iv: communicationData.iv)
             .base16); //TODO accept conditionally
-        fileData.fileName = fileName;
-        fileData.fileSize = fileSize;
+        fileReceiveData.fileName = fileName;
+        fileReceiveData.fileSize = fileSize;
         communicationData.currentState = CommunicationStates.receivingFile;
         break;
       }
@@ -124,32 +121,39 @@ void handleCommunication(Socket socket, CommunicationData communicationData, Fil
     case CommunicationStates.fileAcceptExpectation:
       if (decryptedMessage == 'FILE-ACCEPT') {
         communicationData.currentState = CommunicationStates.sendingFile;
-        fileData.completersMap[fileData.fileAcceptId]!.complete();
+        fileSendData.completersMap[fileSendData.fileAcceptId]!.complete();
       }
       break;
     case CommunicationStates.sendingFile:
-      if (decryptedMessage == 'FILE-RECEIVED') {
-        fileData.completersMap[fileData.fileReceivedId]!.complete();
+      if (decryptedMessage.startsWith('PACKET-RECEIVED')) {
+        int packetNumber = int.parse(decryptedMessage.split('/')[1]);
+        fileSendData.completersMap[packetNumber]!.complete();
+      } else if (decryptedMessage == 'FILE-RECEIVED') {
+        fileSendData.completersMap[fileSendData.fileReceivedId]!.complete();
       }
       break;
     case CommunicationStates.receivingFile:
-      List<int> decryptedData = communicationData.encrypter!.decryptBytes(
-        encrypt.Encrypted(Uint8List.fromList(receivedData)),
-        iv: communicationData.iv,
-      );
-      fileData.fileBytesBuffer.addAll(decryptedData);
-      fileData.receivedBytes += decryptedData.length;
-      if (fileData.fileSize == fileData.receivedBytes) {
+      if (decryptedMessage == 'FILE-SENT') {
         saveBytesToFile(
-          fileData.fileBytesBuffer,
-          fileData.fileName,
+          fileReceiveData.fileBytesBuffer,
+          fileReceiveData.fileName,
         ); //TODO dodac prawidlowa sciezke
-        fileData.clear();
+        fileReceiveData.clear();
         communicationData.currentState = CommunicationStates.regular;
         socket.write(communicationData.encrypter!
             .encrypt('FILE-RECEIVED', iv: communicationData.iv)
             .base16);
+        return;
       }
+
+      List<int> decryptedData = communicationData.encrypter!.decryptBytes(
+        encrypt.Encrypted(Uint8List.fromList(receivedData)),
+        iv: communicationData.iv,
+      );
+      fileReceiveData.fileBytesBuffer.addAll(decryptedData);
+      socket.write(communicationData.encrypter!
+            .encrypt('PACKET-RECEIVED/${fileReceiveData.packetCounter++}', iv: communicationData.iv)
+            .base16);
       break;
 
     default:

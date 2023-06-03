@@ -18,7 +18,8 @@ class UserSession with ChangeNotifier {
   ServerSocket? serverSocket;
   Socket? clientSocket;
   CommunicationData communicationData = CommunicationData();
-  FileData fileData = FileData();
+  FileSendData fileSendData = FileSendData();
+  FileReceiveData fileReceiveData = FileReceiveData();
 
   encrypt.IV? get iv => _iv;
   encrypt.Key? get sessionKey => _sessionKey;

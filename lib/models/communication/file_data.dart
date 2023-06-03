@@ -1,23 +1,35 @@
 import 'dart:async';
 import 'dart:convert';
 
-class FileData {
+class FileReceiveData {
   List<int> fileBytesBuffer = [];
-  Map<int, Completer<void>> completersMap = {};
   String fileName = '';
   int fileSize = 0;
-  int receivedBytes = 0;
-  int fileAcceptId = 0;
-  int fileReceivedId = 0;
+  int packetCounter = 0;
 
   void clear() {
     fileBytesBuffer.clear();
+    fileName = '';
+    fileSize = 0;
+    packetCounter = 0;
+  }
+}
+
+class FileSendData {
+  Map<int, Completer<void>> completersMap = {};
+  String fileName = '';
+  int fileSize = 0;
+  int fileAcceptId = 0;
+  int fileReceivedId = 0;
+  int packetCounter = 0;
+
+  void clear() {
     completersMap.clear();
     fileName = '';
     fileSize = 0;
-    receivedBytes = 0;
     fileAcceptId = 0;
     fileReceivedId = 0;
+    packetCounter = 0;
   }
 
   // void updateFromDto(Map<String, dynamic> dto) {
