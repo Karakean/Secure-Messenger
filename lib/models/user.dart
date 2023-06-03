@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:pointycastle/pointycastle.dart';
 import 'package:secure_messenger/models/communication/communication_data.dart';
+import 'package:secure_messenger/models/communication/file_data.dart';
 
 class UserSession with ChangeNotifier {
   //encrypt.Encrypter encrypter;
@@ -16,7 +17,8 @@ class UserSession with ChangeNotifier {
 
   ServerSocket? serverSocket;
   Socket? clientSocket;
-  CommunicationData data = CommunicationData();
+  CommunicationData communicationData = CommunicationData();
+  FileData fileData = FileData();
 
   encrypt.IV? get iv => _iv;
   encrypt.Key? get sessionKey => _sessionKey;

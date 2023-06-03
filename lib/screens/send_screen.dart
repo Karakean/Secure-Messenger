@@ -11,6 +11,8 @@ import 'package:secure_messenger/models/user.dart';
 import 'package:secure_messenger/screens/chat_screen.dart';
 import 'package:secure_messenger/widgets/custom_field.dart';
 
+import '../models/communication/file_data.dart';
+
 class SendScreen extends StatefulWidget {
   const SendScreen({super.key});
 
@@ -35,14 +37,15 @@ class _SendScreenState extends State<SendScreen> {
     final session = context.read<UserSession>();
 
     session.clientSocket = await Socket.connect(destination, 2137);
-    session.data = CommunicationData();
+    session.communicationData = CommunicationData();
+    session.fileData = FileData();
 
     session.clientSocket!.listen(
       (List<int> receivedData) {
-        if (session.data.afterHandshake) {
-          handleCommunication(session.clientSocket!, session.data, receivedData);
+        if (session.communicationData.afterHandshake) {
+          handleCommunication(session.clientSocket!, session.communicationData, session.fileData, receivedData);
         } else {
-          handleClientHandshake(context, session.clientSocket!, session.data, receivedData);
+          handleClientHandshake(context, session.clientSocket!, session.communicationData, receivedData, session.fileData);
         }
       },
     );

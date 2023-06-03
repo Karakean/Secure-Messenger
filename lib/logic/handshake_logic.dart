@@ -11,6 +11,8 @@ import 'package:secure_messenger/models/communication/communication_data.dart';
 import 'package:secure_messenger/models/user.dart';
 import 'package:secure_messenger/logic/communication_logic.dart';
 
+import '../models/communication/file_data.dart';
+
 void handleServerHandshake(
   BuildContext context,
   Socket socket,
@@ -80,6 +82,7 @@ void handleClientHandshake(
   Socket socket,
   CommunicationData communicationData,
   List<int> receivedData,
+  FileData fileData //TODO remove
 ) {
   final rsa = context.read<RsaKeyHelper>();
 
@@ -141,8 +144,9 @@ void handleClientHandshake(
         print("sending file");
         sendFile(
           File("/home/kulpas/Desktop/xdd.jpeg"),
-          socket,
-          communicationData
+          fileData,
+          communicationData,
+          socket
         );
 
         return;

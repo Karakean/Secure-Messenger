@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:secure_messenger/logic/communication_logic.dart';
 import 'package:secure_messenger/logic/handshake_logic.dart';
+import 'package:secure_messenger/models/communication/file_data.dart';
 
 import 'package:secure_messenger/models/user.dart';
 import 'package:secure_messenger/screens/chat_screen.dart';
@@ -43,14 +44,15 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
     session.serverSocket = await ServerSocket.bind(data.ipAddr, 2137);
 
     await for (Socket clientSocket in session.serverSocket!) {
-      session.data = CommunicationData();
+      session.communicationData = CommunicationData();
+      session.fileData = FileData();
       clientSocket.listen(
         (List<int> receivedData) {
-          if (session.data.afterHandshake) {
+          if (session.communicationData.afterHandshake) {
             //split or smth idk
-            handleCommunication(clientSocket, session.data, receivedData);
+            handleCommunication(clientSocket, session.communicationData, session.fileData, receivedData);
           } else {
-            handleServerHandshake(context, clientSocket, session.data, receivedData);
+            handleServerHandshake(context, clientSocket, session.communicationData, receivedData);
           }
         },
       );
