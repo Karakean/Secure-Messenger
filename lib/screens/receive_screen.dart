@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:async/async.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:secure_messenger/logic/sockets.dart';
@@ -20,20 +19,10 @@ class ReceiveScreen extends StatefulWidget {
 }
 
 class _ReceiveScreenState extends State<ReceiveScreen> {
-  late final CancelableOperation serverFuture;
-
   @override
   void initState() {
     super.initState();
-
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      serverFuture = CancelableOperation.fromFuture(
-        initializeServer(),
-        //Future.delayed(const Duration(seconds: 5)),
-      ).then(
-        (value) => Navigator.pushReplacementNamed(context, ChatScreen.routeName),
-      );
-    });
+    initializeServer();
   }
 
   Future<void> initializeServer() async {
@@ -43,8 +32,20 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
 
     final providers = Providers(user: data, session: session, rsa: rsa);
 
-    final socket = await ServerSocket.bind(data.ipAddr, 2137);
+    final socket = await ServerSocket.bind(data.ipAddr, 2137, shared: true);
     session.server = ThingThatIsTheServer(socket, providers);
+  }
+
+  @override
+  void didChangeDependencies() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userSession = context.read<UserSession>();
+      print(userSession.sessionKey);
+      if (userSession.sessionKey != null) {
+        Navigator.pushReplacementNamed(context, ChatScreen.routeName);
+      }
+    });
+    super.didChangeDependencies();
   }
 
   @override
@@ -52,8 +53,7 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
     final userSession = context.watch<UserSession>();
     return WillPopScope(
       onWillPop: () async {
-        await serverFuture.cancel();
-        userSession.server?.close();
+        userSession.reset();
         return true;
       },
       child: Scaffold(

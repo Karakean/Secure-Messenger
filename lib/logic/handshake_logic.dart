@@ -14,7 +14,8 @@ void handleServerHandshake(
 ) {
   final rsa = providers.rsa;
   final userData = providers.user;
-  final communicationData = providers.session.data;
+  final session = providers.session;
+  final communicationData = session.data;
   final decodedData = utf8.decode(receivedData, allowMalformed: true);
 
   switch (communicationData.currentState) {
@@ -41,6 +42,7 @@ void handleServerHandshake(
       final chosenMode =
           clientPackage.cipherMode == "CBC" ? encrypt.AESMode.cbc : encrypt.AESMode.ecb;
 
+      session.sessionKey = clientPackage.sessionKey;
       communicationData.encrypter = encrypt.Encrypter(
         encrypt.AES(
           clientPackage.sessionKey,

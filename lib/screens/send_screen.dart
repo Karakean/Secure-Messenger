@@ -1,6 +1,4 @@
 import 'dart:io';
-
-import 'package:async/async.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -24,7 +22,6 @@ class SendScreen extends StatefulWidget {
 }
 
 class _SendScreenState extends State<SendScreen> {
-  CancelableOperation? clientFuture;
   String? destination;
 
   final _formKey = GlobalKey<FormState>();
@@ -52,12 +49,22 @@ class _SendScreenState extends State<SendScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userSession = context.read<UserSession>();
+      if (userSession.sessionKey != null) {
+        Navigator.pushReplacementNamed(context, ChatScreen.routeName);
+      }
+    });
+    super.didChangeDependencies();
+  }
+
+  @override
   Widget build(BuildContext context) {
     UserSession userSession = context.watch<UserSession>();
     return WillPopScope(
       onWillPop: () async {
-        clientFuture?.cancel();
-        userSession.client?.close();
+        userSession.reset();
         return true;
       },
       child: Scaffold(
@@ -111,14 +118,7 @@ class _SendScreenState extends State<SendScreen> {
                 ),
               if (!_loading)
                 ElevatedButton(
-                  onPressed: destination != null
-                      ? () {
-                          clientFuture = CancelableOperation.fromFuture(connectToServer()).then(
-                            (value) =>
-                                Navigator.pushReplacementNamed(context, ChatScreen.routeName),
-                          );
-                        }
-                      : null,
+                  onPressed: destination != null ? connectToServer : null,
                   child: const Text("Connect"),
                 ),
             ],

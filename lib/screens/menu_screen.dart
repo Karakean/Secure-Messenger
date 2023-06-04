@@ -42,8 +42,8 @@ class _MenuScreenState extends State<MenuScreen> {
   @override
   void initState() {
     final data = context.read<UserData>();
-    if (data.interface == null || data.ipAddr == null) return;
-    selectedValue = InterfaceAndAddress(data.interface!, data.ipAddr!);
+    data.interface = null;
+    data.ipAddr = null;
     super.initState();
   }
 

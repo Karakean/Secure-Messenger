@@ -59,6 +59,24 @@ class UserSession with ChangeNotifier {
     notifyListeners();
   }
 
+  void reset() {
+    _server?.close();
+    _server = null;
+
+    _client?.close();
+    _client = null;
+
+    _iv = null;
+    _sessionKey = null;
+    _isECB = true;
+
+    data = CommunicationData();
+    fileSendData = FileSendData();
+    fileReceiveData = FileReceiveData();
+
+    notifyListeners();
+  }
+
   //encrypter = encrypt.Encrypter(encrypt.AES(sessionKey, mode: encrypt.AESMode.cbc)); //TODO change cbc to user choice cbc or ecb
 }
 

@@ -23,6 +23,7 @@ class _ChatScreenState extends State<ChatScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userSession = context.read<UserSession>();
       if (userSession.server == null && userSession.client == null) {
+        Future.delayed(const Duration(milliseconds: 500)).then((value) => userSession.reset());
         Navigator.of(context).pushReplacementNamed(MenuScreen.routeName);
       }
     });
@@ -40,8 +41,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final userSession = context.watch<UserSession>();
     return WillPopScope(
       onWillPop: () async {
-        userSession.server?.close();
-        userSession.client?.close();
+        userSession.reset();
         return true;
       },
       child: Scaffold(

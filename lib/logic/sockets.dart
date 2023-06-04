@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:secure_messenger/logic/file_logic.dart';
+import 'package:secure_messenger/logic/communication_logic.dart';
 import 'package:secure_messenger/logic/handshake_logic.dart';
 import 'package:secure_messenger/models/common.dart';
 import 'package:secure_messenger/models/communication/communication_data.dart';
