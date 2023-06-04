@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:pointycastle/export.dart';
+import 'package:secure_messenger/logic/communication_logic.dart';
 import 'package:secure_messenger/models/common.dart';
 
 import 'package:secure_messenger/models/communication/client_package.dart';
@@ -15,7 +16,7 @@ void handleServerHandshake(
   final rsa = providers.rsa;
   final userData = providers.user;
   final session = providers.session;
-  final communicationData = session.data;
+  final communicationData = session.communicationData;
   final decodedData = utf8.decode(receivedData, allowMalformed: true);
 
   switch (communicationData.currentState) {
@@ -79,7 +80,7 @@ void handleClientHandshake(
   List<int> receivedData,
 ) {
   final rsa = providers.rsa;
-  final communicationData = providers.session.data;
+  final communicationData = providers.session.communicationData;
   final userSession = providers.session;
 
   final decodedData = utf8.decode(receivedData);
@@ -134,13 +135,13 @@ void handleClientHandshake(
         communicationData.currentState = CommunicationStates.regular;
         communicationData.afterHandshake = true;
 
-        //print("sending file");
-        // sendFile(
-        //   File("/home/kulpas/Desktop/xdd.jpeg"),
-        //   socket,
-        //   communicationData.encrypter!,
-        //   communicationData.iv!,
-        // );
+        print("sending file");
+        sendFile(
+          File("/home/kulpas/Desktop/test.jpg"),
+          providers.session.fileSendData,
+          providers.session.communicationData,
+          socket,
+        );
 
         return;
       }

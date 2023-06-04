@@ -38,7 +38,7 @@ class _SendScreenState extends State<SendScreen> {
 
     final providers = Providers(user: data, session: session, rsa: rsa);
 
-    session.data = CommunicationData();
+    session.communicationData = CommunicationData();
     session.fileSendData = FileSendData();
     session.fileReceiveData =
         FileReceiveData(); //TODO check if we cant just init entire user session
@@ -80,6 +80,7 @@ class _SendScreenState extends State<SendScreen> {
                   key: _formKey,
                   child: CustomField(
                     child: TextFormField(
+                      initialValue: '192.168.0.3', //TODO: remove later
                       decoration: const InputDecoration(
                         border: InputBorder.none,
                         hintText: "IP address",

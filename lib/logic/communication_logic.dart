@@ -7,6 +7,8 @@ import 'package:flutter/foundation.dart';
 
 import 'package:secure_messenger/models/common.dart';
 import 'package:secure_messenger/models/communication/communication_data.dart';
+import 'package:secure_messenger/models/communication/message.dart';
+import 'package:secure_messenger/models/user.dart';
 
 import '../models/communication/file_data.dart';
 
@@ -20,8 +22,12 @@ Future<void> saveBytesToFile(List<int> bytes, String filePath) async {
   print('File saved: $filePath'); //TODO mozna wyrzucic potem
 }
 
-void sendFile(File file, FileSendData fileSendData, CommunicationData communicationData,
-    Socket socket) async {
+void sendFile(
+  File file,
+  FileSendData fileSendData,
+  CommunicationData communicationData,
+  Socket socket,
+) async {
   final Uint8List fixedLengthFileBytes = await file.readAsBytes();
   final List<int> fileBytes = fixedLengthFileBytes.toList();
   final int totalPackets = (fileBytes.length / kPacketSize).ceil();
@@ -49,6 +55,10 @@ void sendFile(File file, FileSendData fileSendData, CommunicationData communicat
       await fileSendData.completersMap[packetCounter++]!.future
           .timeout(const Duration(seconds: 10));
     }
+
+    socket.write(
+      communicationData.encrypter!.encrypt('FILE-SENT', iv: communicationData.iv).base16,
+    );
 
     await fileSendData.completersMap[fileSendData.fileReceivedId]!.future
         .timeout(const Duration(seconds: 10));
@@ -97,7 +107,7 @@ void handleCommunication(
   Socket socket,
   List<int> receivedData,
 ) {
-  final CommunicationData communicationData = providers.session.data;
+  final CommunicationData communicationData = providers.session.communicationData;
   final FileSendData fileSendData = providers.session.fileSendData;
   final FileReceiveData fileReceiveData = providers.session.fileReceiveData;
   String decryptedMessage = "";
@@ -106,8 +116,10 @@ void handleCommunication(
       utf8.decode(receivedData, allowMalformed: true),
       iv: communicationData.iv,
     );
-  } catch (e) {
-    print("$e | secure_messenger ignore");
+  } on FormatException {
+    //git
+  } on AssertionError {
+    //tez git
   }
 
   switch (communicationData.currentState) {
@@ -117,7 +129,8 @@ void handleCommunication(
         String fileName = splittedString[1];
         int fileSize = int.parse(splittedString[2]);
         print(
-            'Do you accept file $fileName (size: ${formatFileSize(fileSize)})?'); // TODO change to popup
+          'Do you accept file $fileName (size: ${formatFileSize(fileSize)})?',
+        ); // TODO change to popup
         socket.write(communicationData.encrypter!
             .encrypt('FILE-ACCEPT', iv: communicationData.iv)
             .base16); //TODO accept conditionally
@@ -125,10 +138,17 @@ void handleCommunication(
         fileReceiveData.fileSize = fileSize;
         communicationData.currentState = CommunicationStates.receivingFile;
         break;
+      } else {
+        providers.session.addMessage(Message(
+          username: "Them",
+          text: decryptedMessage,
+          isMe: false,
+        ));
       }
       break;
     case CommunicationStates.fileAcceptExpectation:
       if (decryptedMessage == 'FILE-ACCEPT') {
+        print("YOOOOOO");
         communicationData.currentState = CommunicationStates.sendingFile;
         fileSendData.completersMap[fileSendData.fileAcceptId]!.complete();
       }
@@ -143,6 +163,7 @@ void handleCommunication(
       break;
     case CommunicationStates.receivingFile:
       if (decryptedMessage == 'FILE-SENT') {
+        print('yyyy twoj stary?');
         saveBytesToFile(
           fileReceiveData.fileBytesBuffer,
           fileReceiveData.fileName,
@@ -167,6 +188,24 @@ void handleCommunication(
     default:
       break;
   }
+}
+
+void sendMessage(
+  String msg,
+  UserSession session,
+) {
+  assert(session.client == null || session.server == null);
+
+  final data = session.communicationData;
+  final Socket socket = session.client?.socket ?? session.server!.handler.socket;
+
+  socket.write(data.encrypter!.encrypt(msg, iv: data.iv).base16);
+
+  session.addMessage(Message(
+    username: "Me",
+    text: msg,
+    isMe: true,
+  ));
 }
 
 void fileTest(encrypt.Encrypter encrypter, encrypt.IV iv) async {

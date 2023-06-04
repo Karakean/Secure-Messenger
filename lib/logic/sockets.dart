@@ -14,7 +14,7 @@ class ThingThatIsTheServer {
   ThingThatIsTheServer(this.server, this.providers) {
     server.listen((client) {
       connected = true;
-      providers.session.data = CommunicationData();
+      providers.session.communicationData = CommunicationData();
       handler = ThingThatTalksToClient(client, providers);
     });
   }
@@ -34,7 +34,7 @@ class ThingThatTalksToClient {
   }
 
   void messageHandler(List<int> data) {
-    if (providers.session.data.afterHandshake) {
+    if (providers.session.communicationData.afterHandshake) {
       //split or smth idk
       handleCommunication(providers, socket, data);
     } else {
@@ -71,7 +71,7 @@ class ThingThatTalksToServer {
   }
 
   void messageHandler(List<int> data) {
-    if (providers.session.data.afterHandshake) {
+    if (providers.session.communicationData.afterHandshake) {
       //split or smth idk
       handleCommunication(providers, socket, data);
     } else {

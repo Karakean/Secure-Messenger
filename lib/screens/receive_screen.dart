@@ -40,7 +40,6 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
   void didChangeDependencies() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userSession = context.read<UserSession>();
-      print(userSession.sessionKey);
       if (userSession.sessionKey != null) {
         Navigator.pushReplacementNamed(context, ChatScreen.routeName);
       }

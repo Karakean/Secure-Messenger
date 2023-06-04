@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:secure_messenger/logic/communication_logic.dart';
+import 'package:secure_messenger/models/user.dart';
+import 'package:provider/provider.dart';
 
 class Chatbox extends StatefulWidget {
   const Chatbox({super.key});
@@ -12,11 +15,12 @@ class _ChatboxState extends State<Chatbox> {
   String _message = '';
 
   void _sendMessage() async {
-    FocusScope.of(context).unfocus();
+    final session = context.read<UserSession>();
 
-    //send msg
-
+    print("aa");
+    sendMessage(_controller.text, session);
     _controller.clear();
+    FocusScope.of(context).unfocus();
   }
 
   @override

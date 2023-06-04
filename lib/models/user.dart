@@ -6,6 +6,7 @@ import 'package:pointycastle/pointycastle.dart';
 import 'package:secure_messenger/logic/sockets.dart';
 import 'package:secure_messenger/models/communication/communication_data.dart';
 import 'package:secure_messenger/models/communication/file_data.dart';
+import 'package:secure_messenger/models/communication/message.dart';
 
 class UserSession with ChangeNotifier {
   //encrypt.Encrypter encrypter;
@@ -18,9 +19,11 @@ class UserSession with ChangeNotifier {
 
   ThingThatIsTheServer? _server;
   ThingThatTalksToServer? _client;
-  CommunicationData data = CommunicationData();
+  CommunicationData communicationData = CommunicationData();
   FileSendData fileSendData = FileSendData();
   FileReceiveData fileReceiveData = FileReceiveData();
+
+  List<Message> messages = [];
 
   encrypt.IV? get iv => _iv;
   encrypt.Key? get sessionKey => _sessionKey;
@@ -70,10 +73,15 @@ class UserSession with ChangeNotifier {
     _sessionKey = null;
     _isECB = true;
 
-    data = CommunicationData();
+    communicationData = CommunicationData();
     fileSendData = FileSendData();
     fileReceiveData = FileReceiveData();
 
+    notifyListeners();
+  }
+
+  void addMessage(Message msg) {
+    messages.add(msg);
     notifyListeners();
   }
 
