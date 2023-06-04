@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:pointycastle/pointycastle.dart';
+import 'package:secure_messenger/logic/sockets.dart';
 import 'package:secure_messenger/models/communication/communication_data.dart';
 import 'package:secure_messenger/models/communication/file_data.dart';
 
@@ -15,15 +16,18 @@ class UserSession with ChangeNotifier {
   encrypt.Key? _sessionKey;
   bool _isECB = true;
 
-  ServerSocket? serverSocket;
-  Socket? clientSocket;
-  CommunicationData communicationData = CommunicationData();
+  ThingThatIsTheServer? _server;
+  ThingThatTalksToServer? _client;
+  CommunicationData data = CommunicationData();
   FileSendData fileSendData = FileSendData();
   FileReceiveData fileReceiveData = FileReceiveData();
 
   encrypt.IV? get iv => _iv;
   encrypt.Key? get sessionKey => _sessionKey;
   bool get isECB => _isECB;
+
+  ThingThatIsTheServer? get server => _server;
+  ThingThatTalksToServer? get client => _client;
 
   set sessionKey(encrypt.Key? newKey) {
     _sessionKey = newKey;
@@ -42,6 +46,16 @@ class UserSession with ChangeNotifier {
 
   void generateSessionKey() {
     _sessionKey = encrypt.Key.fromSecureRandom(16);
+    notifyListeners();
+  }
+
+  set server(ThingThatIsTheServer? value) {
+    _server = value;
+    notifyListeners();
+  }
+
+  set client(ThingThatTalksToServer? value) {
+    _client = value;
     notifyListeners();
   }
 

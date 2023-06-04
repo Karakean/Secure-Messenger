@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 class FileReceiveData {
   List<int> fileBytesBuffer = [];
@@ -57,4 +56,3 @@ class FileSendData {
   // }
   //TO SIE CHYBA NIE PRZYDA ALE NARAZIE ZOSTAWIE SORY KRZYSIU
 }
-

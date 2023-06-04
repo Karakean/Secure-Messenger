@@ -280,7 +280,6 @@ class RsaKeyHelper {
     var encrypter =
         encryptpackage.Encrypter(encryptpackage.AES(keyFromHash, mode: encryptpackage.AESMode.cbc));
     var iv = getIvFromHash(hashValue);
-    print(iv.bytes);
     String decryptedKey = encrypter.decrypt16(encryptedPrivateKey, iv: iv);
     dynamic privateKey = parsePrivateKeyFromPem(decryptedKey);
 

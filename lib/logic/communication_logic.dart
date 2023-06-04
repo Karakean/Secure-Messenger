@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:flutter/foundation.dart';
@@ -21,12 +20,8 @@ Future<void> saveBytesToFile(List<int> bytes, String filePath) async {
   print('File saved: $filePath'); //TODO mozna wyrzucic potem
 }
 
-void sendFile(
-  File file,
-  FileSendData fileSendData,
-  CommunicationData communicationData,
-  Socket socket
-) async {
+void sendFile(File file, FileSendData fileSendData, CommunicationData communicationData,
+    Socket socket) async {
   final Uint8List fixedLengthFileBytes = await file.readAsBytes();
   final List<int> fileBytes = fixedLengthFileBytes.toList();
   final int totalPackets = (fileBytes.length / kPacketSize).ceil();
@@ -39,19 +34,26 @@ void sendFile(
   fileSendData.fileName = file.uri.pathSegments.last;
   fileSendData.fileSize = fileBytes.length;
   communicationData.currentState = CommunicationStates.fileAcceptExpectation;
-  socket.write(communicationData.encrypter!.encrypt('SEND-FILE/${fileSendData.fileName}/${fileSendData.fileSize}', iv: communicationData.iv).base16);
+  socket.write(communicationData.encrypter!
+      .encrypt('SEND-FILE/${fileSendData.fileName}/${fileSendData.fileSize}',
+          iv: communicationData.iv)
+      .base16);
   try {
-    await fileSendData.completersMap[fileSendData.fileAcceptId]!.future.timeout(const Duration(seconds: 10));
+    await fileSendData.completersMap[fileSendData.fileAcceptId]!.future
+        .timeout(const Duration(seconds: 10));
 
     while (fileBytes.isNotEmpty) {
       fileSendData.completersMap[packetCounter] = Completer<void>();
-      sendPacket(fileBytes, socket, communicationData.encrypter!, communicationData.iv!, packetCounter, totalPackets);
-      await fileSendData.completersMap[packetCounter++]!.future.timeout(const Duration(seconds: 10));
+      sendPacket(fileBytes, socket, communicationData.encrypter!, communicationData.iv!,
+          packetCounter, totalPackets);
+      await fileSendData.completersMap[packetCounter++]!.future
+          .timeout(const Duration(seconds: 10));
     }
 
-    await fileSendData.completersMap[fileSendData.fileReceivedId]!.future.timeout(const Duration(seconds: 10));
+    await fileSendData.completersMap[fileSendData.fileReceivedId]!.future
+        .timeout(const Duration(seconds: 10));
     print("Wyslano"); //TODO change to popup
-  } on TimeoutException catch (e) {
+  } on TimeoutException {
     print('Timeout occured during file sending.');
   } finally {
     communicationData.currentState = CommunicationStates.regular;
@@ -79,7 +81,6 @@ void sendPacket(
 }
 
 String formatFileSize(int x) {
-
   if (x > 1024 * 1024 * 1024) {
     return '${(x / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
   } else if (x > 1024 * 1024) {
@@ -91,7 +92,14 @@ String formatFileSize(int x) {
   }
 }
 
-void handleCommunication(Socket socket, CommunicationData communicationData, FileSendData fileSendData, FileReceiveData fileReceiveData, List<int> receivedData) {
+void handleCommunication(
+  Providers providers,
+  Socket socket,
+  List<int> receivedData,
+) {
+  final CommunicationData communicationData = providers.session.data;
+  final FileSendData fileSendData = providers.session.fileSendData;
+  final FileReceiveData fileReceiveData = providers.session.fileReceiveData;
   String decryptedMessage = "";
   try {
     decryptedMessage = communicationData.encrypter!.decrypt16(
@@ -108,7 +116,8 @@ void handleCommunication(Socket socket, CommunicationData communicationData, Fil
         List<String> splittedString = decryptedMessage.split('/');
         String fileName = splittedString[1];
         int fileSize = int.parse(splittedString[2]);
-        print('Do you accept file $fileName (size: ${formatFileSize(fileSize)})?'); // TODO change to popup
+        print(
+            'Do you accept file $fileName (size: ${formatFileSize(fileSize)})?'); // TODO change to popup
         socket.write(communicationData.encrypter!
             .encrypt('FILE-ACCEPT', iv: communicationData.iv)
             .base16); //TODO accept conditionally
@@ -140,9 +149,8 @@ void handleCommunication(Socket socket, CommunicationData communicationData, Fil
         ); //TODO dodac prawidlowa sciezke
         fileReceiveData.clear();
         communicationData.currentState = CommunicationStates.regular;
-        socket.write(communicationData.encrypter!
-            .encrypt('FILE-RECEIVED', iv: communicationData.iv)
-            .base16);
+        socket.write(
+            communicationData.encrypter!.encrypt('FILE-RECEIVED', iv: communicationData.iv).base16);
         return;
       }
 
@@ -152,8 +160,8 @@ void handleCommunication(Socket socket, CommunicationData communicationData, Fil
       );
       fileReceiveData.fileBytesBuffer.addAll(decryptedData);
       socket.write(communicationData.encrypter!
-            .encrypt('PACKET-RECEIVED/${fileReceiveData.packetCounter++}', iv: communicationData.iv)
-            .base16);
+          .encrypt('PACKET-RECEIVED/${fileReceiveData.packetCounter++}', iv: communicationData.iv)
+          .base16);
       break;
 
     default:
