@@ -62,7 +62,6 @@ void handleServerHandshake(
       if (decryptedData == 'DONE-ACK') {
         communicationData.currentState = CommunicationStates.regular;
         communicationData.afterHandshake = true;
-        print("ELO");
         break;
       }
       break;
@@ -82,8 +81,6 @@ void handleClientHandshake(
   final userSession = providers.session;
 
   final decodedData = utf8.decode(receivedData);
-
-  print('yy');
 
   switch (communicationData.currentState) {
     case CommunicationStates.initial:
@@ -135,7 +132,7 @@ void handleClientHandshake(
         communicationData.currentState = CommunicationStates.regular;
         communicationData.afterHandshake = true;
 
-        print("sending file");
+        //print("sending file");
         // sendFile(
         //   File("/home/kulpas/Desktop/xdd.jpeg"),
         //   socket,

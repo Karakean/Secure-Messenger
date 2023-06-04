@@ -8,17 +8,19 @@ import 'package:secure_messenger/models/communication/communication_data.dart';
 class ThingThatIsTheServer {
   final Providers providers;
   final ServerSocket server;
+  bool connected = false;
   late final ThingThatTalksToClient handler;
 
   ThingThatIsTheServer(this.server, this.providers) {
     server.listen((client) {
+      connected = true;
       providers.session.data = CommunicationData();
       handler = ThingThatTalksToClient(client, providers);
     });
   }
 
   Future<ServerSocket> close() async {
-    handler.close();
+    if (connected) handler.close();
     return server.close();
   }
 }
@@ -51,6 +53,7 @@ class ThingThatTalksToClient {
   }
 
   void close() {
+    providers.session.server = null;
     socket.destroy();
   }
 
@@ -87,6 +90,7 @@ class ThingThatTalksToServer {
   }
 
   void close() {
+    providers.session.client = null;
     socket.destroy();
   }
 

@@ -53,7 +53,7 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
     return WillPopScope(
       onWillPop: () async {
         await serverFuture.cancel();
-        await userSession.server?.close();
+        userSession.server?.close();
         return true;
       },
       child: Scaffold(
