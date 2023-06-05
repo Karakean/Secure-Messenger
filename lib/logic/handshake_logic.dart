@@ -135,13 +135,15 @@ void handleClientHandshake(
         communicationData.currentState = CommunicationStates.regular;
         communicationData.afterHandshake = true;
 
-        print("sending file");
-        sendFile(
-          File("/home/kulpas/Desktop/test.jpg"),
-          providers.session.fileSendData,
-          providers.session.communicationData,
-          socket,
-        );
+        Future.delayed(const Duration(seconds: 2)).then((value) {
+          print("sending file");
+          sendFile(
+            File("/home/kulpas/Desktop/test.jpg"),
+            providers.session.fileSendData,
+            providers.session.communicationData,
+            socket,
+          );
+        });
 
         return;
       }

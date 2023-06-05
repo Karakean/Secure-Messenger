@@ -18,6 +18,7 @@ Future<void> saveBytesToFile(List<int> bytes, String filePath) async {
   final path = await getLocalPath();
   final file = File('$path/$filePath');
   await file.writeAsBytes(bytes);
+  print(bytes);
   bytes.clear();
   print('File saved: $filePath'); //TODO mozna wyrzucic potem
 }
@@ -148,7 +149,6 @@ void handleCommunication(
       break;
     case CommunicationStates.fileAcceptExpectation:
       if (decryptedMessage == 'FILE-ACCEPT') {
-        print("YOOOOOO");
         communicationData.currentState = CommunicationStates.sendingFile;
         fileSendData.completersMap[fileSendData.fileAcceptId]!.complete();
       }
@@ -163,12 +163,11 @@ void handleCommunication(
       break;
     case CommunicationStates.receivingFile:
       if (decryptedMessage == 'FILE-SENT') {
-        print('yyyy twoj stary?');
+        print(fileReceiveData.fileBytesBuffer.length);
         saveBytesToFile(
           fileReceiveData.fileBytesBuffer,
           fileReceiveData.fileName,
-        ); //TODO dodac prawidlowa sciezke
-        fileReceiveData.clear();
+        ).then((value) => fileReceiveData.clear()); //TODO dodac prawidlowa sciezke
         communicationData.currentState = CommunicationStates.regular;
         socket.write(
             communicationData.encrypter!.encrypt('FILE-RECEIVED', iv: communicationData.iv).base16);
@@ -180,6 +179,7 @@ void handleCommunication(
         iv: communicationData.iv,
       );
       fileReceiveData.fileBytesBuffer.addAll(decryptedData);
+      print("${decryptedData.length} XDDD");
       socket.write(communicationData.encrypter!
           .encrypt('PACKET-RECEIVED/${fileReceiveData.packetCounter++}', iv: communicationData.iv)
           .base16);
