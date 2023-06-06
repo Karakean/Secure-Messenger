@@ -1,13 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:flutter/foundation.dart';
 
 import 'package:secure_messenger/models/common.dart';
 import 'package:secure_messenger/models/communication/communication_data.dart';
+import 'package:secure_messenger/models/communication/message.dart';
+import 'package:secure_messenger/models/user.dart';
 
 import '../models/communication/file_data.dart';
 
@@ -23,10 +24,14 @@ Future<void> saveBytesToFile(List<int> bytes, String filePath) async {
 
 void sendFile(
   File file,
-  FileSendData fileSendData,
-  CommunicationData communicationData,
-  Socket socket
+  UserSession session,
 ) async {
+  assert(session.client == null || session.server == null);
+
+  final Socket socket = session.client?.socket ?? session.server!.handler.socket;
+  final fileSendData = session.fileSendData;
+  final communicationData = session.communicationData;
+
   final Uint8List fixedLengthFileBytes = await file.readAsBytes();
   final List<int> fileBytes = fixedLengthFileBytes.toList();
   final int totalPackets = (fileBytes.length / kPacketSize).ceil();
@@ -39,19 +44,32 @@ void sendFile(
   fileSendData.fileName = file.uri.pathSegments.last;
   fileSendData.fileSize = fileBytes.length;
   communicationData.currentState = CommunicationStates.fileAcceptExpectation;
-  socket.write(communicationData.encrypter!.encrypt('SEND-FILE/${fileSendData.fileName}/${fileSendData.fileSize}', iv: communicationData.iv).base16);
+  socket.write(communicationData.encrypter!
+      .encrypt('SEND-FILE/${fileSendData.fileName}/${fileSendData.fileSize}',
+          iv: communicationData.iv)
+      .base16);
   try {
-    await fileSendData.completersMap[fileSendData.fileAcceptId]!.future.timeout(const Duration(seconds: 10));
+    await fileSendData.completersMap[fileSendData.fileAcceptId]!.future
+        .timeout(const Duration(seconds: 10));
 
     while (fileBytes.isNotEmpty) {
       fileSendData.completersMap[packetCounter] = Completer<void>();
-      sendPacket(fileBytes, socket, communicationData.encrypter!, communicationData.iv!, packetCounter, totalPackets);
-      await fileSendData.completersMap[packetCounter++]!.future.timeout(const Duration(seconds: 10));
+      sendPacket(fileBytes, socket, communicationData.encrypter!, communicationData.iv!,
+          packetCounter, totalPackets);
+      session.progress = packetCounter / totalPackets;
+      await fileSendData.completersMap[packetCounter++]!.future
+          .timeout(const Duration(seconds: 10));
     }
 
-    await fileSendData.completersMap[fileSendData.fileReceivedId]!.future.timeout(const Duration(seconds: 10));
+    socket.write(
+      communicationData.encrypter!.encrypt('FILE-SENT', iv: communicationData.iv).base16,
+    );
+    session.progress = 1.0;
+
+    await fileSendData.completersMap[fileSendData.fileReceivedId]!.future
+        .timeout(const Duration(seconds: 10));
     print("Wyslano"); //TODO change to popup
-  } on TimeoutException catch (e) {
+  } on TimeoutException {
     print('Timeout occured during file sending.');
   } finally {
     communicationData.currentState = CommunicationStates.regular;
@@ -73,13 +91,9 @@ void sendPacket(
 
   socket.add(encryptedChunk);
   fileBytes.removeRange(0, packetEndIdx);
-  print(
-    "Sending in progress (${(packetCounter / totalPackets) * 100}%)",
-  ); //TODO zamienic na fajny paseczek
 }
 
 String formatFileSize(int x) {
-
   if (x > 1024 * 1024 * 1024) {
     return '${(x / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
   } else if (x > 1024 * 1024) {
@@ -91,15 +105,24 @@ String formatFileSize(int x) {
   }
 }
 
-void handleCommunication(Socket socket, CommunicationData communicationData, FileSendData fileSendData, FileReceiveData fileReceiveData, List<int> receivedData) {
+void handleCommunication(
+  Providers providers,
+  Socket socket,
+  List<int> receivedData,
+) {
+  final CommunicationData communicationData = providers.session.communicationData;
+  final FileSendData fileSendData = providers.session.fileSendData;
+  final FileReceiveData fileReceiveData = providers.session.fileReceiveData;
   String decryptedMessage = "";
   try {
     decryptedMessage = communicationData.encrypter!.decrypt16(
       utf8.decode(receivedData, allowMalformed: true),
       iv: communicationData.iv,
     );
-  } catch (e) {
-    print("$e | secure_messenger ignore");
+  } on FormatException {
+    //git
+  } on AssertionError {
+    //tez git
   }
 
   switch (communicationData.currentState) {
@@ -108,7 +131,9 @@ void handleCommunication(Socket socket, CommunicationData communicationData, Fil
         List<String> splittedString = decryptedMessage.split('/');
         String fileName = splittedString[1];
         int fileSize = int.parse(splittedString[2]);
-        print('Do you accept file $fileName (size: ${formatFileSize(fileSize)})?'); // TODO change to popup
+        print(
+          'Do you accept file $fileName (size: ${formatFileSize(fileSize)})?',
+        ); // TODO change to popup
         socket.write(communicationData.encrypter!
             .encrypt('FILE-ACCEPT', iv: communicationData.iv)
             .base16); //TODO accept conditionally
@@ -116,6 +141,12 @@ void handleCommunication(Socket socket, CommunicationData communicationData, Fil
         fileReceiveData.fileSize = fileSize;
         communicationData.currentState = CommunicationStates.receivingFile;
         break;
+      } else {
+        providers.session.addMessage(Message(
+          username: "Them",
+          text: decryptedMessage,
+          isMe: false,
+        ));
       }
       break;
     case CommunicationStates.fileAcceptExpectation:
@@ -137,12 +168,10 @@ void handleCommunication(Socket socket, CommunicationData communicationData, Fil
         saveBytesToFile(
           fileReceiveData.fileBytesBuffer,
           fileReceiveData.fileName,
-        ); //TODO dodac prawidlowa sciezke
-        fileReceiveData.clear();
+        ).then((value) => fileReceiveData.clear()); //TODO dodac prawidlowa sciezke
         communicationData.currentState = CommunicationStates.regular;
-        socket.write(communicationData.encrypter!
-            .encrypt('FILE-RECEIVED', iv: communicationData.iv)
-            .base16);
+        socket.write(
+            communicationData.encrypter!.encrypt('FILE-RECEIVED', iv: communicationData.iv).base16);
         return;
       }
 
@@ -152,13 +181,31 @@ void handleCommunication(Socket socket, CommunicationData communicationData, Fil
       );
       fileReceiveData.fileBytesBuffer.addAll(decryptedData);
       socket.write(communicationData.encrypter!
-            .encrypt('PACKET-RECEIVED/${fileReceiveData.packetCounter++}', iv: communicationData.iv)
-            .base16);
+          .encrypt('PACKET-RECEIVED/${fileReceiveData.packetCounter++}', iv: communicationData.iv)
+          .base16);
       break;
 
     default:
       break;
   }
+}
+
+void sendMessage(
+  String msg,
+  UserSession session,
+) {
+  assert(session.client == null || session.server == null);
+
+  final Socket socket = session.client?.socket ?? session.server!.handler.socket;
+  final data = session.communicationData;
+
+  socket.write(data.encrypter!.encrypt(msg, iv: data.iv).base16);
+
+  session.addMessage(Message(
+    username: "Me",
+    text: msg,
+    isMe: true,
+  ));
 }
 
 void fileTest(encrypt.Encrypter encrypter, encrypt.IV iv) async {

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:secure_messenger/models/user.dart';
+import 'package:secure_messenger/screens/menu_screen.dart';
 
 import 'package:secure_messenger/widgets/messages.dart';
 import 'package:secure_messenger/widgets/chatbox.dart';
@@ -16,23 +19,43 @@ class _ChatScreenState extends State<ChatScreen> {
   bool isECB = false;
 
   @override
+  void didChangeDependencies() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userSession = context.read<UserSession>();
+      if (userSession.server == null && userSession.client == null) {
+        Future.delayed(const Duration(milliseconds: 500)).then((value) => userSession.reset());
+        Navigator.of(context).pushReplacementNamed(MenuScreen.routeName);
+      }
+    });
+
+    super.didChangeDependencies();
+  }
+
+  @override
   void initState() {
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Chat'),
-      ),
-      body: Column(
-        children: const [
-          Expanded(
-            child: Messages(),
-          ),
-          Chatbox(),
-        ],
+    final userSession = context.watch<UserSession>();
+    return WillPopScope(
+      onWillPop: () async {
+        userSession.reset();
+        return true;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Chat'),
+        ),
+        body: const Column(
+          children: [
+            Expanded(
+              child: Messages(),
+            ),
+            Chatbox(),
+          ],
+        ),
       ),
     );
   }

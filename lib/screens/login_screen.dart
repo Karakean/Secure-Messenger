@@ -1,4 +1,5 @@
 import 'dart:convert';
+// ignore: unused_import
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -91,10 +92,6 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                FutureBuilder(
-                  future: path,
-                  builder: (context, snapshot) => Image.file(File('${snapshot.data!}/xdd.jpeg')),
-                ),
                 Text(
                   "Secure Messenger",
                   style: Theme.of(context).textTheme.headlineSmall,

@@ -1,12 +1,11 @@
 import 'dart:io';
-
-import 'package:async/async.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:secure_messenger/logic/communication_logic.dart';
-import 'package:secure_messenger/logic/handshake_logic.dart';
+import 'package:secure_messenger/logic/sockets.dart';
+import 'package:secure_messenger/models/common.dart';
 import 'package:secure_messenger/models/communication/communication_data.dart';
+import 'package:secure_messenger/models/communication/rsa_key_helper.dart';
 import 'package:secure_messenger/models/user.dart';
 import 'package:secure_messenger/screens/chat_screen.dart';
 import 'package:secure_messenger/widgets/custom_field.dart';
@@ -23,7 +22,6 @@ class SendScreen extends StatefulWidget {
 }
 
 class _SendScreenState extends State<SendScreen> {
-  CancelableOperation? clientFuture;
   String? destination;
 
   final _formKey = GlobalKey<FormState>();
@@ -35,22 +33,30 @@ class _SendScreenState extends State<SendScreen> {
     });
 
     final session = context.read<UserSession>();
+    final data = context.read<UserData>();
+    final rsa = context.read<RsaKeyHelper>();
 
-    session.clientSocket = await Socket.connect(destination, 2137);
-    session.communicationData = CommunicationData(); //TODO verify if this initialization is not redundant bo imo jest krzychu skoro to inicjalizujemy w userze xd
-    session.fileSendData = FileSendData(); //TODO verify if this initialization is not redundant bo imo jest krzychu skoro to inicjalizujemy w userze xd
-    session.fileReceiveData = FileReceiveData(); //TODO verify if this initialization is not redundant bo imo jest krzychu skoro to inicjalizujemy w userze xd
+    final providers = Providers(user: data, session: session, rsa: rsa);
 
-    session.clientSocket!.listen(
-      (List<int> receivedData) {
-        if (session.communicationData.afterHandshake) {
-          handleCommunication(session.clientSocket!, session.communicationData, session.fileSendData, session.fileReceiveData, receivedData);
-        } else {
-          handleClientHandshake(context, session.clientSocket!, session.communicationData, receivedData, session.fileSendData);
-        }
-      },
-    );
-    session.clientSocket!.write('SYN');
+    session.communicationData = CommunicationData();
+    session.fileSendData = FileSendData();
+    session.fileReceiveData =
+        FileReceiveData(); //TODO check if we cant just init entire user session
+    final socket = await Socket.connect(destination, 2137);
+    session.client = ThingThatTalksToServer(socket, providers);
+
+    session.client!.socket.write('SYN');
+  }
+
+  @override
+  void didChangeDependencies() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userSession = context.read<UserSession>();
+      if (userSession.sessionKey != null) {
+        Navigator.pushReplacementNamed(context, ChatScreen.routeName);
+      }
+    });
+    super.didChangeDependencies();
   }
 
   @override
@@ -58,8 +64,7 @@ class _SendScreenState extends State<SendScreen> {
     UserSession userSession = context.watch<UserSession>();
     return WillPopScope(
       onWillPop: () async {
-        clientFuture?.cancel();
-        userSession.clientSocket?.close();
+        userSession.reset();
         return true;
       },
       child: Scaffold(
@@ -75,6 +80,7 @@ class _SendScreenState extends State<SendScreen> {
                   key: _formKey,
                   child: CustomField(
                     child: TextFormField(
+                      initialValue: '192.168.0.3', //TODO: remove later
                       decoration: const InputDecoration(
                         border: InputBorder.none,
                         hintText: "IP address",
@@ -113,14 +119,7 @@ class _SendScreenState extends State<SendScreen> {
                 ),
               if (!_loading)
                 ElevatedButton(
-                  onPressed: destination != null
-                      ? () {
-                          clientFuture = CancelableOperation.fromFuture(connectToServer()).then(
-                            (value) =>
-                                Navigator.pushReplacementNamed(context, ChatScreen.routeName),
-                          );
-                        }
-                      : null,
+                  onPressed: destination != null ? connectToServer : null,
                   child: const Text("Connect"),
                 ),
             ],
