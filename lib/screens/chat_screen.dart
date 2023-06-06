@@ -33,6 +33,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void initState() {
+    final userSession = context.read<UserSession>();
+    userSession.chatContext = context;
     super.initState();
   }
 
