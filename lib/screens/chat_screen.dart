@@ -48,8 +48,8 @@ class _ChatScreenState extends State<ChatScreen> {
         appBar: AppBar(
           title: const Text('Chat'),
         ),
-        body: Column(
-          children: const [
+        body: const Column(
+          children: [
             Expanded(
               child: Messages(),
             ),

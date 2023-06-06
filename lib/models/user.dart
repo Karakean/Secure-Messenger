@@ -32,6 +32,8 @@ class UserSession with ChangeNotifier {
   ThingThatIsTheServer? get server => _server;
   ThingThatTalksToServer? get client => _client;
 
+  double get progress => fileSendData.progress;
+
   set sessionKey(encrypt.Key? newKey) {
     _sessionKey = newKey;
     notifyListeners();
@@ -77,6 +79,13 @@ class UserSession with ChangeNotifier {
     fileSendData = FileSendData();
     fileReceiveData = FileReceiveData();
 
+    messages.clear();
+
+    notifyListeners();
+  }
+
+  set progress(double progress) {
+    fileSendData.progress = progress;
     notifyListeners();
   }
 

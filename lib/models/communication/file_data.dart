@@ -21,6 +21,7 @@ class FileSendData {
   int fileAcceptId = 0;
   int fileReceivedId = 0;
   int packetCounter = 0;
+  double progress = 0;
 
   void clear() {
     completersMap.clear();
@@ -29,6 +30,7 @@ class FileSendData {
     fileAcceptId = 0;
     fileReceivedId = 0;
     packetCounter = 0;
+    progress = 0;
   }
 
   // void updateFromDto(Map<String, dynamic> dto) {

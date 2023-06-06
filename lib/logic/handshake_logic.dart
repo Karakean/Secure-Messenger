@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:pointycastle/export.dart';
-import 'package:secure_messenger/logic/communication_logic.dart';
 import 'package:secure_messenger/models/common.dart';
 
 import 'package:secure_messenger/models/communication/client_package.dart';
@@ -134,16 +133,6 @@ void handleClientHandshake(
         );
         communicationData.currentState = CommunicationStates.regular;
         communicationData.afterHandshake = true;
-
-        Future.delayed(const Duration(seconds: 2)).then((value) {
-          print("sending file");
-          sendFile(
-            File("/home/kulpas/Desktop/test.jpg"),
-            providers.session.fileSendData,
-            providers.session.communicationData,
-            socket,
-          );
-        });
 
         return;
       }

@@ -92,10 +92,6 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                FutureBuilder(
-                  future: path,
-                  builder: (context, snapshot) => Image.file(File('${snapshot.data!}/test.jpg')),
-                ),
                 Text(
                   "Secure Messenger",
                   style: Theme.of(context).textTheme.headlineSmall,

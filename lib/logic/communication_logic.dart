@@ -18,17 +18,20 @@ Future<void> saveBytesToFile(List<int> bytes, String filePath) async {
   final path = await getLocalPath();
   final file = File('$path/$filePath');
   await file.writeAsBytes(bytes);
-  print(bytes);
   bytes.clear();
   print('File saved: $filePath'); //TODO mozna wyrzucic potem
 }
 
 void sendFile(
   File file,
-  FileSendData fileSendData,
-  CommunicationData communicationData,
-  Socket socket,
+  UserSession session,
 ) async {
+  assert(session.client == null || session.server == null);
+
+  final Socket socket = session.client?.socket ?? session.server!.handler.socket;
+  final fileSendData = session.fileSendData;
+  final communicationData = session.communicationData;
+
   final Uint8List fixedLengthFileBytes = await file.readAsBytes();
   final List<int> fileBytes = fixedLengthFileBytes.toList();
   final int totalPackets = (fileBytes.length / kPacketSize).ceil();
@@ -53,6 +56,7 @@ void sendFile(
       fileSendData.completersMap[packetCounter] = Completer<void>();
       sendPacket(fileBytes, socket, communicationData.encrypter!, communicationData.iv!,
           packetCounter, totalPackets);
+      session.progress = packetCounter / totalPackets;
       await fileSendData.completersMap[packetCounter++]!.future
           .timeout(const Duration(seconds: 10));
     }
@@ -60,6 +64,7 @@ void sendFile(
     socket.write(
       communicationData.encrypter!.encrypt('FILE-SENT', iv: communicationData.iv).base16,
     );
+    session.progress = 1.0;
 
     await fileSendData.completersMap[fileSendData.fileReceivedId]!.future
         .timeout(const Duration(seconds: 10));
@@ -86,9 +91,6 @@ void sendPacket(
 
   socket.add(encryptedChunk);
   fileBytes.removeRange(0, packetEndIdx);
-  print(
-    "Sending in progress (${(packetCounter / totalPackets) * 100}%)",
-  ); //TODO zamienic na fajny paseczek
 }
 
 String formatFileSize(int x) {
@@ -163,7 +165,6 @@ void handleCommunication(
       break;
     case CommunicationStates.receivingFile:
       if (decryptedMessage == 'FILE-SENT') {
-        print(fileReceiveData.fileBytesBuffer.length);
         saveBytesToFile(
           fileReceiveData.fileBytesBuffer,
           fileReceiveData.fileName,
@@ -179,7 +180,6 @@ void handleCommunication(
         iv: communicationData.iv,
       );
       fileReceiveData.fileBytesBuffer.addAll(decryptedData);
-      print("${decryptedData.length} XDDD");
       socket.write(communicationData.encrypter!
           .encrypt('PACKET-RECEIVED/${fileReceiveData.packetCounter++}', iv: communicationData.iv)
           .base16);
@@ -196,8 +196,8 @@ void sendMessage(
 ) {
   assert(session.client == null || session.server == null);
 
-  final data = session.communicationData;
   final Socket socket = session.client?.socket ?? session.server!.handler.socket;
+  final data = session.communicationData;
 
   socket.write(data.encrypter!.encrypt(msg, iv: data.iv).base16);
 
