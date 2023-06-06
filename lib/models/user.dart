@@ -44,11 +44,6 @@ class UserSession with ChangeNotifier {
     notifyListeners();
   }
 
-  void generateIV() {
-    _iv = encrypt.IV.fromLength(16); //TODO change to fromSecureRandom(16)
-    notifyListeners();
-  }
-
   void generateSessionKey() {
     _sessionKey = encrypt.Key.fromSecureRandom(16);
     notifyListeners();
@@ -94,7 +89,6 @@ class UserSession with ChangeNotifier {
     notifyListeners();
   }
 
-  //encrypter = encrypt.Encrypter(encrypt.AES(sessionKey, mode: encrypt.AESMode.cbc)); //TODO change cbc to user choice cbc or ecb
 }
 
 class UserData with ChangeNotifier {

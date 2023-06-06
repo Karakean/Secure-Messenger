@@ -52,24 +52,23 @@ class _LoginScreenState extends State<LoginScreen> {
     }
     _formKey.currentState!.save();
 
-    if (_password != "xdxd") {
-      return;
-    }
-
     final rsa.AsymmetricKeyPair<rsa.RSAPublicKey, rsa.RSAPrivateKey>? keyPair;
     final bytes = utf8.encode(_password); //convert string password to UTF-8 bytes
     final hash = sha256.convert(bytes); //create hash from UTF-8 bytes
     final hashHex = hash.toString(); //convert hash to its hexadecimal representation
 
     if (_isLogin) {
-      keyPair = await rsaKeyHelper.loadKeysFromFiles(hashHex);
+      keyPair = await rsaKeyHelper.loadKeysFromFiles(hashHex, _login);
       if (keyPair == null) {
-        print("brak klucza xd");
+        print("Incorrect login or password.");  // TODO change to popup
         return;
       }
     } else {
-      keyPair = rsaKeyHelper.generateRSAkeyPair(rsaKeyHelper.exampleSecureRandom());
-      await rsaKeyHelper.saveKeysToFiles(keyPair, hashHex);
+      keyPair = await rsaKeyHelper.generateAndSaveKeys(hashHex, _login);
+      if (keyPair == null) {
+        print("There is already a user with such login.");  // TODO change to popup
+        return;
+      }
     }
 
     if (context.mounted) {
@@ -78,6 +77,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
       Navigator.of(context).pushReplacementNamed(MenuScreen.routeName);
     }
+  }
+
+  bool validateLogin(String? login) {
+    if (login == null || login.isEmpty || login.length < 4) {
+      return false;
+    }
+    final pattern = RegExp(r'^[a-zA-Z0-9]+$');
+    return pattern.hasMatch(login);
   }
 
   @override
@@ -101,17 +108,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Column(
                     children: [
                       CustomField(
-                        visible: !_isLogin,
                         child: TextFormField(
-                          enabled: !_isLogin,
                           decoration: const InputDecoration(
                             border: InputBorder.none,
                             hintText: "Username",
                           ),
                           validator: (value) {
                             if (_isLogin) return null;
-                            if (value == null || value.isEmpty || value.characters.length < 4) {
-                              return "Enter at least 4 characters";
+                            if (validateLogin(value)) {
+                              return "Enter at least 4 valid characters (upper and lowercase letters or numbers)";
                             }
                             return null;
                           },

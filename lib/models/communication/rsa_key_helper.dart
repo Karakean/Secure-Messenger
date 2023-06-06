@@ -237,8 +237,7 @@ class RsaKeyHelper {
     return iv;
   }
 
-  Future<void> saveKeysToFiles(
-      AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey> keyPair, String hashValue) async {
+  Future<AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey>?> generateAndSaveKeys(String hashValue, String login) async {
     final path = await getLocalPath();
 
     final publicDir = Directory('$path/public');
@@ -250,10 +249,24 @@ class RsaKeyHelper {
       privateDir.createSync();
     }
 
-    final publicKeyFile = File('$path/public/key.pem');
-    publicKeyFile.writeAsString(encodePublicKeyToPem(keyPair.publicKey));
+    final publicKeyFile = File('$path/public/$login.pem');
+    final privateKeyFile = File('$path/private/$login.pem');
+    if (privateKeyFile.existsSync() || publicKeyFile.existsSync()) {
+      return null;
+    }
+    
+    final keyPair = generateRSAkeyPair(exampleSecureRandom());
+    saveKeysToFiles(keyPair, hashValue, publicKeyFile, privateKeyFile);
+    return keyPair;
+  }
 
-    final privateKeyFile = File('$path/private/key.pem');
+  Future<void> saveKeysToFiles(
+      AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey> keyPair, 
+      String hashValue, 
+       publicKeyFile, 
+       File privateKeyFile) async {
+
+    publicKeyFile.writeAsString(encodePublicKeyToPem(keyPair.publicKey));
     var keyFromHash = encryptpackage.Key.fromBase16(
         hashValue); //create key from hexadecimal representation of hash
     var encrypter =
@@ -265,11 +278,11 @@ class RsaKeyHelper {
   }
 
   Future<AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey>?> loadKeysFromFiles(
-      String hashValue) async {
+      String hashValue, String login) async {
     final path = await getLocalPath();
 
-    final publicKeyFile = File('$path/public/key.pem');
-    final privateKeyFile = File('$path/private/key.pem');
+    final publicKeyFile = File('$path/public/$login.pem');
+    final privateKeyFile = File('$path/private/$login.pem');
     if (!await publicKeyFile.exists() || !await privateKeyFile.exists()) {
       return null;
     }
