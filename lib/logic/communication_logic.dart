@@ -8,18 +8,19 @@ import 'package:flutter/foundation.dart';
 import 'package:secure_messenger/models/common.dart';
 import 'package:secure_messenger/models/communication/communication_data.dart';
 import 'package:secure_messenger/models/communication/message.dart';
+import 'package:secure_messenger/models/exceptions.dart';
 import 'package:secure_messenger/models/user.dart';
 
 import '../models/communication/file_data.dart';
 
 const kPacketSize = 1024;
 
-Future<void> saveBytesToFile(List<int> bytes, String filePath) async {
+Future<void> saveBytesToFile(List<int> bytes, String fileName) async {
   final path = await getLocalPath();
-  final file = File('$path/$filePath');
+  final file = File('$path/$fileName');
   await file.writeAsBytes(bytes);
   bytes.clear();
-  print('File saved: $filePath'); //TODO mozna wyrzucic potem
+  print('File saved: $fileName'); //TODO mozna wyrzucic potem
 }
 
 void sendFile(
@@ -71,6 +72,8 @@ void sendFile(
     print("Wyslano"); //TODO change to popup
   } on TimeoutException {
     print('Timeout occured during file sending.');
+  } on FileRefusedException catch(e) {
+    print(e);
   } finally {
     communicationData.currentState = CommunicationStates.regular;
     fileSendData.clear();
@@ -134,16 +137,21 @@ void handleCommunication(
         print(
           'Do you accept file $fileName (size: ${formatFileSize(fileSize)})?',
         ); // TODO change to popup
-        socket.write(communicationData.encrypter!
+        if (true) {
+          socket.write(communicationData.encrypter!
             .encrypt('FILE-ACCEPT', iv: communicationData.iv)
             .base16); //TODO accept conditionally
+        } else {
+          socket.write(communicationData.encrypter!.encrypt('FILE-DENY', iv: communicationData.iv).base16);
+        }
+        
         fileReceiveData.fileName = fileName;
         fileReceiveData.fileSize = fileSize;
         communicationData.currentState = CommunicationStates.receivingFile;
         break;
       } else {
         providers.session.addMessage(Message(
-          username: "Them",
+          username: "Them", //TODO change
           text: decryptedMessage,
           isMe: false,
         ));
@@ -153,6 +161,8 @@ void handleCommunication(
       if (decryptedMessage == 'FILE-ACCEPT') {
         communicationData.currentState = CommunicationStates.sendingFile;
         fileSendData.completersMap[fileSendData.fileAcceptId]!.complete();
+      } else if (decryptedMessage == 'FILE-DENY') {
+        fileSendData.completersMap[fileSendData.fileAcceptId]!.completeError(FileRefusedException("User refused to receive a file."));
       }
       break;
     case CommunicationStates.sendingFile:
@@ -168,7 +178,7 @@ void handleCommunication(
         saveBytesToFile(
           fileReceiveData.fileBytesBuffer,
           fileReceiveData.fileName,
-        ).then((value) => fileReceiveData.clear()); //TODO dodac prawidlowa sciezke
+        ).then((value) => fileReceiveData.clear());
         communicationData.currentState = CommunicationStates.regular;
         socket.write(
             communicationData.encrypter!.encrypt('FILE-RECEIVED', iv: communicationData.iv).base16);
@@ -206,40 +216,4 @@ void sendMessage(
     text: msg,
     isMe: true,
   ));
-}
-
-void fileTest(encrypt.Encrypter encrypter, encrypt.IV iv) async {
-  //TODO remove it in the future, it is only for
-  // testing purposes
-  print('HELLO');
-  Uint8List orgbytes = await File('bird.avi').readAsBytes();
-  var bytes = orgbytes.toList();
-  final totalPackets = (bytes.length / (1024)).ceil();
-  int packetCounter = 0;
-  List<int> uno = utf8.encode(encrypter.encrypt('SEND-FILE', iv: iv).base16);
-  if (encrypter.decrypt16(utf8.decode(uno), iv: iv) != 'SEND-FILE') {
-    throw Exception("XD");
-  }
-  List<int> fileBuffer = [];
-  while (bytes.isNotEmpty) {
-    final packetEndIdx = bytes.length < 1024 ? bytes.length : 1024;
-    if (packetEndIdx == 0) {
-      print(bytes);
-      print(bytes.isEmpty);
-      print(bytes.first);
-      print(bytes.isNotEmpty);
-      print(bytes.last);
-      print("XD");
-      print(bytes.length);
-    }
-    final dataChunk = bytes.sublist(0, packetEndIdx);
-    List<int> encryptedChunk = encrypter.encryptBytes(dataChunk, iv: iv).bytes.toList();
-    List<int> decryptedChunk =
-        encrypter.decryptBytes(encrypt.Encrypted(Uint8List.fromList(encryptedChunk)), iv: iv);
-    fileBuffer.addAll(decryptedChunk);
-    bytes.removeRange(0, packetEndIdx);
-    packetCounter++;
-    print("Sending in progress (${(packetCounter / totalPackets) * 100}%)");
-  }
-  saveBytesToFile(fileBuffer, 'bird2.avi');
 }
