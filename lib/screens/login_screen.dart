@@ -28,7 +28,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   final _formKey = GlobalKey<FormState>();
   bool _isLogin = true;
-  // ignore: unused_field
   String _login = '';
   String _password = '';
 
