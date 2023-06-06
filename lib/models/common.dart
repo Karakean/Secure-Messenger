@@ -9,6 +9,12 @@ Future<String> getLocalPath() async {
   return directory.path;
 }
 
+Future<String> getSavePath() async {
+  final directory = await getDownloadsDirectory();
+
+  return directory!.path;
+}
+
 class InterfaceAndAddress {
   InterfaceAndAddress(this.interface, this.address);
 

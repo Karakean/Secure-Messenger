@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:flutter/foundation.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import 'package:secure_messenger/models/common.dart';
 import 'package:secure_messenger/models/communication/communication_data.dart';
@@ -15,7 +16,20 @@ import '../models/communication/file_data.dart';
 const kPacketSize = 1024;
 
 Future<void> saveBytesToFile(List<int> bytes, String filePath) async {
-  final path = await getLocalPath();
+  final String path;
+
+  if (Platform.isAndroid) {
+    if (await Permission.manageExternalStorage.request().isGranted) {
+      path = '/storage/emulated/0/Download/';
+    } else {
+      throw Exception('Permission not granted');
+    }
+  } else if (Platform.isWindows || Platform.isLinux) {
+    path = await getSavePath();
+  } else {
+    throw Exception("Running on some weird OS");
+  }
+
   final file = File('$path/$filePath');
   await file.writeAsBytes(bytes);
   bytes.clear();
