@@ -28,15 +28,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
   final _formKey = GlobalKey<FormState>();
   bool _isLogin = true;
-  // ignore: unused_field
   String _login = '';
   String _password = '';
 
   late final TextEditingController _passwordController;
+  late final TextEditingController _passwordRepeatController;
 
   @override
   void dispose() {
     _passwordController.dispose();
+    _passwordRepeatController.dispose();
     super.dispose();
   }
 
@@ -44,6 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     _passwordController = TextEditingController();
+    _passwordRepeatController = TextEditingController();
   }
 
   void _submit() async {
@@ -60,13 +62,13 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_isLogin) {
       keyPair = await rsaKeyHelper.loadKeysFromFiles(hashHex, _login);
       if (keyPair == null) {
-        print("Incorrect login or password.");  // TODO change to popup
+        print("Incorrect login or password."); // TODO change to popup
         return;
       }
     } else {
       keyPair = await rsaKeyHelper.generateAndSaveKeys(hashHex, _login);
       if (keyPair == null) {
-        print("There is already a user with such login.");  // TODO change to popup
+        print("There is already a user with such login."); // TODO change to popup
         return;
       }
     }
@@ -74,6 +76,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (context.mounted) {
       final userData = context.read<UserData>();
       userData.keyPair = keyPair;
+      userData.username = _login;
 
       Navigator.of(context).pushReplacementNamed(MenuScreen.routeName);
     }
@@ -115,7 +118,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           validator: (value) {
                             if (_isLogin) return null;
-                            if (validateLogin(value)) {
+                            if (!validateLogin(value)) {
                               return "Enter at least 4 valid characters (upper and lowercase letters or numbers)";
                             }
                             return null;
@@ -149,6 +152,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         visible: !_isLogin,
                         child: TextFormField(
                           enabled: !_isLogin,
+                          controller: _passwordRepeatController,
                           obscureText: true,
                           decoration: const InputDecoration(
                             border: InputBorder.none,
@@ -178,6 +182,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 TextButton(
                   onPressed: () {
                     setState(() {
+                      _passwordRepeatController.clear();
                       _isLogin = !_isLogin;
                     });
                   },

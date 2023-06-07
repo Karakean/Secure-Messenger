@@ -62,6 +62,7 @@ class _SendScreenState extends State<SendScreen> {
   @override
   Widget build(BuildContext context) {
     UserSession userSession = context.watch<UserSession>();
+    final userData = context.read<UserData>();
     return WillPopScope(
       onWillPop: () async {
         userSession.reset();
@@ -70,6 +71,13 @@ class _SendScreenState extends State<SendScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text("Initialize connection"),
+          actions: [
+            Center(
+              child: Text(
+                userData.ipAddr != null ? "Your IP is: ${userData.ipAddr!.address}" : "No IP set!",
+              ),
+            ),
+          ],
         ),
         body: Center(
           child: Column(
@@ -80,7 +88,7 @@ class _SendScreenState extends State<SendScreen> {
                   key: _formKey,
                   child: CustomField(
                     child: TextFormField(
-                      initialValue: '192.168.0.3', //TODO: remove later
+                      //initialValue: '192.168.0.3', //TODO: remove later
                       decoration: const InputDecoration(
                         border: InputBorder.none,
                         hintText: "IP address",

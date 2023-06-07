@@ -18,8 +18,9 @@ class _ChatboxState extends State<Chatbox> {
 
   void _sendMessage() async {
     final session = context.read<UserSession>();
+    final user = context.read<UserData>();
 
-    sendMessage(_controller.text, session);
+    sendMessage(_controller.text, session, user);
     _controller.clear();
     FocusScope.of(context).unfocus();
   }

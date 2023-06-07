@@ -25,6 +25,8 @@ class UserSession with ChangeNotifier {
 
   List<Message> messages = [];
 
+  BuildContext? chatContext;
+
   encrypt.IV? get iv => _iv;
   encrypt.Key? get sessionKey => _sessionKey;
   bool get isECB => _isECB;
@@ -76,6 +78,8 @@ class UserSession with ChangeNotifier {
 
     messages.clear();
 
+    chatContext = null;
+
     notifyListeners();
   }
 
@@ -88,7 +92,6 @@ class UserSession with ChangeNotifier {
     messages.add(msg);
     notifyListeners();
   }
-
 }
 
 class UserData with ChangeNotifier {

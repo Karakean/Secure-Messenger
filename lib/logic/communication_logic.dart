@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:collection/collection.dart';
 
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
 import 'package:secure_messenger/models/common.dart';
 import 'package:secure_messenger/models/communication/communication_data.dart';
@@ -27,6 +29,8 @@ void sendFile(
   File file,
   UserSession session,
 ) async {
+  final stopwatch = Stopwatch();
+  stopwatch.start();
   assert(session.client == null || session.server == null);
 
   final Socket socket = session.client?.socket ?? session.server!.handler.socket;
@@ -53,10 +57,11 @@ void sendFile(
     await fileSendData.completersMap[fileSendData.fileAcceptId]!.future
         .timeout(const Duration(seconds: 10));
 
-    while (fileBytes.isNotEmpty) {
+    final fileBytesSlices = fileBytes.slices(kPacketSize);
+    for (final slice in fileBytesSlices) {
       fileSendData.completersMap[packetCounter] = Completer<void>();
-      sendPacket(fileBytes, socket, communicationData.encrypter!, communicationData.iv!,
-          packetCounter, totalPackets);
+      sendPacket(slice, socket, communicationData.encrypter!, communicationData.iv!, packetCounter,
+          totalPackets);
       session.progress = packetCounter / totalPackets;
       await fileSendData.completersMap[packetCounter++]!.future
           .timeout(const Duration(seconds: 10));
@@ -65,14 +70,20 @@ void sendFile(
     socket.write(
       communicationData.encrypter!.encrypt('FILE-SENT', iv: communicationData.iv).base16,
     );
+    print(stopwatch.elapsed);
+    stopwatch.stop();
     session.progress = 1.0;
 
     await fileSendData.completersMap[fileSendData.fileReceivedId]!.future
         .timeout(const Duration(seconds: 10));
     print("Wyslano"); //TODO change to popup
   } on TimeoutException {
+    session.progress = 1.0;
+    await Future.delayed(const Duration(seconds: 1));
     print('Timeout occured during file sending.');
-  } on FileRefusedException catch(e) {
+  } on FileRefusedException catch (e) {
+    session.progress = 1.0;
+    await Future.delayed(const Duration(seconds: 1));
     print(e);
   } finally {
     communicationData.currentState = CommunicationStates.regular;
@@ -81,19 +92,17 @@ void sendFile(
 }
 
 void sendPacket(
-  List<int> fileBytes,
+  List<int> slice,
   Socket socket,
   encrypt.Encrypter encrypter,
   encrypt.IV iv,
   int packetCounter,
   int totalPackets,
 ) {
-  final packetEndIdx = fileBytes.length < kPacketSize ? fileBytes.length : kPacketSize;
-  final dataChunk = fileBytes.sublist(0, packetEndIdx);
-  final encryptedChunk = encrypter.encryptBytes(dataChunk, iv: iv).bytes;
+  final encryptedChunk = encrypter.encryptBytes(slice, iv: iv).bytes;
 
+  print((packetCounter / totalPackets) * 100);
   socket.add(encryptedChunk);
-  fileBytes.removeRange(0, packetEndIdx);
 }
 
 String formatFileSize(int x) {
@@ -112,7 +121,7 @@ void handleCommunication(
   Providers providers,
   Socket socket,
   List<int> receivedData,
-) {
+) async {
   final CommunicationData communicationData = providers.session.communicationData;
   final FileSendData fileSendData = providers.session.fileSendData;
   final FileReceiveData fileReceiveData = providers.session.fileReceiveData;
@@ -136,23 +145,29 @@ void handleCommunication(
         int fileSize = int.parse(splittedString[2]);
         print(
           'Do you accept file $fileName (size: ${formatFileSize(fileSize)})?',
-        ); // TODO change to popup
-        if (true) {
+        );
+        if (await _popUpFileAccept(providers.session.chatContext) == true) {
           socket.write(communicationData.encrypter!
-            .encrypt('FILE-ACCEPT', iv: communicationData.iv)
-            .base16); //TODO accept conditionally
+              .encrypt('FILE-ACCEPT', iv: communicationData.iv)
+              .base16); //TODO accept conditionally
+          // ignore: dead_code
         } else {
-          socket.write(communicationData.encrypter!.encrypt('FILE-DENY', iv: communicationData.iv).base16);
+          socket.write(
+              communicationData.encrypter!.encrypt('FILE-DENY', iv: communicationData.iv).base16);
         }
-        
+
         fileReceiveData.fileName = fileName;
         fileReceiveData.fileSize = fileSize;
         communicationData.currentState = CommunicationStates.receivingFile;
         break;
       } else {
+        List<String> splittedString = decryptedMessage.split('/');
+        final username = splittedString[1];
+        final msg = splittedString[2];
+
         providers.session.addMessage(Message(
-          username: "Them", //TODO change
-          text: decryptedMessage,
+          username: username, //TODO change
+          text: msg,
           isMe: false,
         ));
       }
@@ -162,7 +177,10 @@ void handleCommunication(
         communicationData.currentState = CommunicationStates.sendingFile;
         fileSendData.completersMap[fileSendData.fileAcceptId]!.complete();
       } else if (decryptedMessage == 'FILE-DENY') {
-        fileSendData.completersMap[fileSendData.fileAcceptId]!.completeError(FileRefusedException("User refused to receive a file."));
+        // fileSendData.completersMap[fileSendData.fileAcceptId]!
+        //     .completeError(FileRefusedException("User refused to receive a file."));
+        fileSendData.progress = 1.0;
+        communicationData.currentState = CommunicationStates.regular;
       }
       break;
     case CommunicationStates.sendingFile:
@@ -203,17 +221,41 @@ void handleCommunication(
 void sendMessage(
   String msg,
   UserSession session,
+  UserData user,
 ) {
   assert(session.client == null || session.server == null);
 
   final Socket socket = session.client?.socket ?? session.server!.handler.socket;
   final data = session.communicationData;
 
-  socket.write(data.encrypter!.encrypt(msg, iv: data.iv).base16);
+  socket.write(data.encrypter!.encrypt('msg/${user.username}/$msg', iv: data.iv).base16);
 
   session.addMessage(Message(
-    username: "Me",
+    username: user.username!,
     text: msg,
     isMe: true,
   ));
+}
+
+Future<bool?> _popUpFileAccept(BuildContext? context) {
+  return context != null
+      ? showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) => AlertDialog(
+            title: const Text("File send request"),
+            content: const Text("User wants to send you a file, do you accept?"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text("Yes"),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text("No"),
+              ),
+            ],
+          ),
+        )
+      : Future(() => false);
 }

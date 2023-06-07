@@ -50,6 +50,7 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
   @override
   Widget build(BuildContext context) {
     final userSession = context.watch<UserSession>();
+    final userData = context.read<UserData>();
     return WillPopScope(
       onWillPop: () async {
         userSession.reset();
@@ -58,6 +59,13 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text("Listen for connections"),
+          actions: [
+            Center(
+              child: Text(
+                userData.ipAddr != null ? "Your IP is: ${userData.ipAddr!.address}" : "No IP set!",
+              ),
+            ),
+          ],
         ),
         body: Center(
           child: Column(
