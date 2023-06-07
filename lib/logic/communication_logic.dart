@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:collection/collection.dart';
 
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:flutter/foundation.dart';
@@ -28,6 +29,8 @@ void sendFile(
   File file,
   UserSession session,
 ) async {
+  final stopwatch = Stopwatch();
+  stopwatch.start();
   assert(session.client == null || session.server == null);
 
   final Socket socket = session.client?.socket ?? session.server!.handler.socket;
@@ -54,10 +57,11 @@ void sendFile(
     await fileSendData.completersMap[fileSendData.fileAcceptId]!.future
         .timeout(const Duration(seconds: 10));
 
-    while (fileBytes.isNotEmpty) {
+    final fileBytesSlices = fileBytes.slices(kPacketSize);
+    for (final slice in fileBytesSlices) {
       fileSendData.completersMap[packetCounter] = Completer<void>();
-      sendPacket(fileBytes, socket, communicationData.encrypter!, communicationData.iv!,
-          packetCounter, totalPackets);
+      sendPacket(slice, socket, communicationData.encrypter!, communicationData.iv!, packetCounter,
+          totalPackets);
       session.progress = packetCounter / totalPackets;
       await fileSendData.completersMap[packetCounter++]!.future
           .timeout(const Duration(seconds: 10));
@@ -66,6 +70,8 @@ void sendFile(
     socket.write(
       communicationData.encrypter!.encrypt('FILE-SENT', iv: communicationData.iv).base16,
     );
+    print(stopwatch.elapsed);
+    stopwatch.stop();
     session.progress = 1.0;
 
     await fileSendData.completersMap[fileSendData.fileReceivedId]!.future
@@ -86,19 +92,17 @@ void sendFile(
 }
 
 void sendPacket(
-  List<int> fileBytes,
+  List<int> slice,
   Socket socket,
   encrypt.Encrypter encrypter,
   encrypt.IV iv,
   int packetCounter,
   int totalPackets,
 ) {
-  final packetEndIdx = fileBytes.length < kPacketSize ? fileBytes.length : kPacketSize;
-  final dataChunk = fileBytes.sublist(0, packetEndIdx);
-  final encryptedChunk = encrypter.encryptBytes(dataChunk, iv: iv).bytes;
+  final encryptedChunk = encrypter.encryptBytes(slice, iv: iv).bytes;
 
+  print((packetCounter / totalPackets) * 100);
   socket.add(encryptedChunk);
-  fileBytes.removeRange(0, packetEndIdx);
 }
 
 String formatFileSize(int x) {
@@ -141,11 +145,12 @@ void handleCommunication(
         int fileSize = int.parse(splittedString[2]);
         print(
           'Do you accept file $fileName (size: ${formatFileSize(fileSize)})?',
-        ); // TODO change to popup
+        );
         if (await _popUpFileAccept(providers.session.chatContext) == true) {
           socket.write(communicationData.encrypter!
               .encrypt('FILE-ACCEPT', iv: communicationData.iv)
               .base16); //TODO accept conditionally
+          // ignore: dead_code
         } else {
           socket.write(
               communicationData.encrypter!.encrypt('FILE-DENY', iv: communicationData.iv).base16);
