@@ -88,7 +88,7 @@ class _SendScreenState extends State<SendScreen> {
                   key: _formKey,
                   child: CustomField(
                     child: TextFormField(
-                      initialValue: '192.168.0.3', //TODO: remove later
+                      //initialValue: '192.168.0.3', //TODO: remove later
                       decoration: const InputDecoration(
                         border: InputBorder.none,
                         hintText: "IP address",
