@@ -5,6 +5,7 @@ class FileReceiveData {
   String fileName = '';
   int fileSize = 0;
   int packetCounter = 0;
+  int expectedPacketNumber = 0;
 
   void clear() {
     fileBytesBuffer.clear();

@@ -66,6 +66,7 @@ class _ChatboxState extends State<Chatbox> {
               final picked = await _pickAndSendFile(session);
               if (picked) {
                 await _showProgressBar();
+                await Future.delayed(const Duration(seconds: 1));
                 session.progress = 0;
               }
             },
