@@ -2,10 +2,13 @@ import 'dart:async';
 
 class FileReceiveData {
   List<int> fileBytesBuffer = [];
+  List<int> malformedPacketBuffer = [];
   String fileName = '';
   int fileSize = 0;
   int packetCounter = 0;
   int expectedPacketNumber = 0;
+  int malformedPacketBytesReceived = 0;
+  bool malformedPacket = false;
 
   void clear() {
     fileBytesBuffer.clear();

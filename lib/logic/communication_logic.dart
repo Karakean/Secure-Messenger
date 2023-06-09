@@ -16,7 +16,7 @@ import 'package:secure_messenger/models/user.dart';
 import '../models/communication/file_data.dart';
 
 const kPacketSize = 1024;
-const encryptedPackedSize = 1040;
+const encryptedPacketSize = 1040;
 
 Future<void> saveBytesToFile(List<int> bytes, String fileName) async {
   final path = await getLocalPath();
@@ -186,17 +186,31 @@ void handleCommunication(
       }
       break;
     case CommunicationStates.receivingFile:
-      if (receivedData.length % encryptedPackedSize != 0) {
-        throw Exception("Received invalid packets.");
-      }
-      int receivedPackets = receivedData.length ~/ encryptedPackedSize;
-      for (int i = 0; i < receivedPackets; i++) {
-        List<int> decryptedData = communicationData.encrypter!.decryptBytes(
-        encrypt.Encrypted(Uint8List.fromList(receivedData.slice(i * encryptedPackedSize, (i + 1) * encryptedPackedSize))),
-        iv: communicationData.iv,
-        );
+      int dataLength = receivedData.length;
+      print(dataLength);
+      int remainder = dataLength % encryptedPacketSize;
+      if (fileReceiveData.malformedPacket) {
+        int remainingPacketBytes = encryptedPacketSize - fileReceiveData.malformedPacketBytesReceived;
+        fileReceiveData.malformedPacketBuffer.addAll(receivedData.slice(0, remainingPacketBytes));
+        List<int> decryptedData = communicationData.encrypter!.decryptBytes(encrypt.Encrypted(Uint8List.fromList(fileReceiveData.malformedPacketBuffer)), iv: communicationData.iv);
         fileReceiveData.fileBytesBuffer.addAll(decryptedData);
         fileReceiveData.packetCounter++;
+        receivedData.removeRange(0, remainingPacketBytes);
+        dataLength = receivedData.length;
+        fileReceiveData.malformedPacketBuffer = [];
+        fileReceiveData.malformedPacketBytesReceived = 0;
+        remainder = dataLength % encryptedPacketSize;
+        if (remainder == 0) {
+          fileReceiveData.malformedPacket = false;
+          savePackets(dataLength, communicationData, receivedData, fileReceiveData);
+        } else {
+          handleMalformedPackets(fileReceiveData, remainder, dataLength, receivedData, communicationData);
+        }
+      } else if (remainder == 0) {
+        savePackets(dataLength, communicationData, receivedData, fileReceiveData);
+      } else {
+        fileReceiveData.malformedPacket = true;
+        handleMalformedPackets(fileReceiveData, remainder, dataLength, receivedData, communicationData);
       }
       
       if (fileReceiveData.packetCounter == fileReceiveData.expectedPacketNumber) {
@@ -212,6 +226,26 @@ void handleCommunication(
 
     default:
       break;
+  }
+}
+
+void handleMalformedPackets(FileReceiveData fileReceiveData, int remainder, int dataLength, List<int> receivedData, CommunicationData communicationData) {
+  fileReceiveData.malformedPacketBytesReceived = remainder;
+  int unmalformedDataLength = dataLength - remainder;
+  fileReceiveData.malformedPacketBuffer = receivedData.slice(unmalformedDataLength, dataLength);
+  List<int> unmalformedData = receivedData.slice(0, unmalformedDataLength);
+  savePackets(unmalformedDataLength, communicationData, unmalformedData, fileReceiveData);
+}
+
+void savePackets(int dataLength, CommunicationData communicationData, List<int> receivedData, FileReceiveData fileReceiveData) {
+  int receivedPackets = dataLength ~/ encryptedPacketSize;
+  for (int i = 0; i < receivedPackets; i++) {
+    List<int> decryptedData = communicationData.encrypter!.decryptBytes(
+    encrypt.Encrypted(Uint8List.fromList(receivedData.slice(i * encryptedPacketSize, (i + 1) * encryptedPacketSize))),
+    iv: communicationData.iv,
+    );
+    fileReceiveData.fileBytesBuffer.addAll(decryptedData);
+    fileReceiveData.packetCounter++;
   }
 }
 
