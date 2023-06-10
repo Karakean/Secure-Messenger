@@ -2,16 +2,16 @@ import 'dart:convert';
 // ignore: unused_import
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:pointycastle/pointycastle.dart' as rsa;
 import 'package:provider/provider.dart';
-import 'package:crypto/crypto.dart';
 
 import 'package:secure_messenger/models/common.dart';
+import 'package:secure_messenger/models/communication/rsa_key_helper.dart';
+import 'package:secure_messenger/models/user.dart';
 import 'package:secure_messenger/screens/menu_screen.dart';
 import 'package:secure_messenger/widgets/custom_field.dart';
-import 'package:secure_messenger/models/user.dart';
-import 'package:secure_messenger/models/communication/rsa_key_helper.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});

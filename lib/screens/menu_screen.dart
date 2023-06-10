@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:secure_messenger/models/user.dart';
 import 'package:secure_messenger/models/common.dart';
+import 'package:secure_messenger/models/user.dart';
 import 'package:secure_messenger/screens/receive_screen.dart';
 import 'package:secure_messenger/screens/send_screen.dart';
 import 'package:secure_messenger/widgets/ecb_switch.dart';

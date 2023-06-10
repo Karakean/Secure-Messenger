@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:secure_messenger/models/user.dart';
 
-import 'message_bubble.dart';
+import 'package:secure_messenger/models/user.dart';
+import 'package:secure_messenger/widgets/message_bubble.dart';
 
 class Messages extends StatelessWidget {
   const Messages({super.key});

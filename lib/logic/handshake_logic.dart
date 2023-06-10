@@ -1,9 +1,10 @@
-import 'dart:io';
 import 'dart:convert';
+import 'dart:io';
+
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:pointycastle/export.dart';
-import 'package:secure_messenger/models/common.dart';
 
+import 'package:secure_messenger/models/common.dart';
 import 'package:secure_messenger/models/communication/client_package.dart';
 import 'package:secure_messenger/models/communication/communication_data.dart';
 

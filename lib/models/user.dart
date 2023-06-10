@@ -1,8 +1,9 @@
 import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
+import 'package:flutter/material.dart';
 import 'package:pointycastle/pointycastle.dart';
+
 import 'package:secure_messenger/logic/sockets.dart';
 import 'package:secure_messenger/models/communication/communication_data.dart';
 import 'package:secure_messenger/models/communication/file_data.dart';

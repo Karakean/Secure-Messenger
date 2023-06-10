@@ -1,19 +1,18 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:collection/collection.dart';
 
+import 'package:collection/collection.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:secure_messenger/models/common.dart';
 import 'package:secure_messenger/models/communication/communication_data.dart';
+import 'package:secure_messenger/models/communication/file_data.dart';
 import 'package:secure_messenger/models/communication/message.dart';
 import 'package:secure_messenger/models/exceptions.dart';
 import 'package:secure_messenger/models/user.dart';
-
-import '../models/communication/file_data.dart';
 
 const kPacketSize = 1024;
 
@@ -22,7 +21,6 @@ Future<void> saveBytesToFile(List<int> bytes, String fileName) async {
   final file = File('$path/$fileName');
   await file.writeAsBytes(bytes);
   bytes.clear();
-  print('File saved: $fileName'); //TODO mozna wyrzucic potem
 }
 
 void sendFile(
