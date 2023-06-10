@@ -27,8 +27,6 @@ void sendFile(
   File file,
   UserSession session,
 ) async {
-  final stopwatch = Stopwatch();
-  stopwatch.start();
   assert(session.client == null || session.server == null);
 
   final Socket socket = session.client?.socket ?? session.server!.handler.socket;
@@ -58,8 +56,15 @@ void sendFile(
     final fileBytesSlices = fileBytes.slices(kPacketSize);
     for (final slice in fileBytesSlices) {
       fileSendData.completersMap[packetCounter] = Completer<void>();
-      sendPacket(slice, socket, communicationData.encrypter!, communicationData.iv!, packetCounter,
-          totalPackets);
+
+      final encryptedChunk = communicationData.encrypter!
+          .encryptBytes(
+            slice,
+            iv: communicationData.iv,
+          )
+          .bytes;
+      socket.add(encryptedChunk);
+
       session.progress = packetCounter / totalPackets;
       await fileSendData.completersMap[packetCounter++]!.future
           .timeout(const Duration(seconds: 10));
@@ -68,8 +73,6 @@ void sendFile(
     socket.write(
       communicationData.encrypter!.encrypt('FILE-SENT', iv: communicationData.iv).base16,
     );
-    print(stopwatch.elapsed);
-    stopwatch.stop();
     session.progress = 1.0;
 
     await fileSendData.completersMap[fileSendData.fileReceivedId]!.future
@@ -87,20 +90,6 @@ void sendFile(
     communicationData.currentState = CommunicationStates.regular;
     fileSendData.clear();
   }
-}
-
-void sendPacket(
-  List<int> slice,
-  Socket socket,
-  encrypt.Encrypter encrypter,
-  encrypt.IV iv,
-  int packetCounter,
-  int totalPackets,
-) {
-  final encryptedChunk = encrypter.encryptBytes(slice, iv: iv).bytes;
-
-  print((packetCounter / totalPackets) * 100);
-  socket.add(encryptedChunk);
 }
 
 String formatFileSize(int x) {
