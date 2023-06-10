@@ -9,9 +9,8 @@ import 'package:secure_messenger/models/communication/communication_data.dart';
 import 'package:secure_messenger/models/communication/file_data.dart';
 import 'package:secure_messenger/models/communication/message.dart';
 
+/// Object containing data that should be reset after every session.
 class UserSession with ChangeNotifier {
-  //encrypt.Encrypter encrypter;
-
   UserSession();
 
   encrypt.IV? _iv;
@@ -26,6 +25,7 @@ class UserSession with ChangeNotifier {
 
   List<Message> messages = [];
 
+  /// Required as an argument to create a popup on chat screen.
   BuildContext? chatContext;
 
   encrypt.IV? get iv => _iv;
@@ -95,6 +95,7 @@ class UserSession with ChangeNotifier {
   }
 }
 
+/// Object containing data that doesn't change during the session
 class UserData with ChangeNotifier {
   NetworkInterface? interface;
   InternetAddress? ipAddr;

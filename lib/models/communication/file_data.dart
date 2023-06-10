@@ -1,5 +1,6 @@
 import 'dart:async';
 
+/// Contains state of the file that is being received.
 class FileReceiveData {
   List<int> fileBytesBuffer = [];
   String fileName = '';
@@ -14,6 +15,7 @@ class FileReceiveData {
   }
 }
 
+/// Contains state of the file that is being sent.
 class FileSendData {
   Map<int, Completer<void>> completersMap = {};
   String fileName = '';

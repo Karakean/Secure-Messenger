@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:secure_messenger/models/user.dart';
 import 'package:secure_messenger/widgets/message_bubble.dart';
 
+/// Widget that renders messages from [UserSession] as [MessageBubble].
 class Messages extends StatelessWidget {
   const Messages({super.key});
 

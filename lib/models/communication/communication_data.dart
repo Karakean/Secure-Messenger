@@ -13,6 +13,8 @@ enum CommunicationStates {
   regular
 }
 
+/// Contains state of the communication protocol
+/// and also the encrypter object for the current session
 class CommunicationData {
   CommunicationStates currentState = CommunicationStates.initial;
   bool afterHandshake = false;

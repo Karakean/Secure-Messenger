@@ -24,6 +24,7 @@ class _MenuScreenState extends State<MenuScreen> {
   late Future optionsFuture = _getOptions();
   InterfaceAndAddress? selectedValue;
 
+  /// Get a list of the devices interfaces and IP adresses
   Future<List<InterfaceAndAddress>> _getOptions() async {
     final List<InterfaceAndAddress> items = [];
     final interfaces = await NetworkInterface.list();
@@ -41,6 +42,8 @@ class _MenuScreenState extends State<MenuScreen> {
 
   @override
   void initState() {
+    //Set the address back to null because [_getOptions]
+    //returns new objects causing an assert error even though they're the same
     final data = context.read<UserData>();
     data.interface = null;
     data.ipAddr = null;

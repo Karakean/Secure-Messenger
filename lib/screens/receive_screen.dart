@@ -38,6 +38,7 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
 
   @override
   void didChangeDependencies() {
+    // Open chat after establishing connection
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userSession = context.read<UserSession>();
       if (userSession.sessionKey != null) {

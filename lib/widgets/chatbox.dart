@@ -8,6 +8,7 @@ import 'package:secure_messenger/logic/communication_logic.dart';
 import 'package:secure_messenger/models/user.dart';
 
 class Chatbox extends StatefulWidget {
+  /// The bottom part of the screen with the text field, "send" button and "send file" button.
   const Chatbox({super.key});
 
   @override

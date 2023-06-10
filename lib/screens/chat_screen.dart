@@ -20,6 +20,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void didChangeDependencies() {
+    // Leave chat if connection has been lost.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userSession = context.read<UserSession>();
       if (userSession.server == null && userSession.client == null) {

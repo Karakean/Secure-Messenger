@@ -24,6 +24,7 @@ class InterfaceAndAddress {
   // int get hashCode => super.hashCode;
 }
 
+/// Wrapper around the data passed to communication functions to reduce argument count.
 class Providers {
   final UserData user;
   final UserSession session;

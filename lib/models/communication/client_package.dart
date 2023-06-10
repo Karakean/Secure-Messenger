@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:encrypt/encrypt.dart' as encrypt;
 
+/// Package object that is being sent between users
 class ClientPackage {
   ClientPackage(
     this.sessionKey,

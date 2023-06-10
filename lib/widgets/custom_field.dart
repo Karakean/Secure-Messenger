@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+/// Wrapper that make the text fiels a bit more pretty.
 class CustomField extends StatelessWidget {
   const CustomField({this.visible = true, required this.child, super.key});
 
