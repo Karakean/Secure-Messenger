@@ -35,7 +35,6 @@ class ThingThatTalksToClient {
 
   void messageHandler(List<int> data) {
     if (providers.session.communicationData.afterHandshake) {
-      //split or smth idk
       handleCommunication(providers, socket, data);
     } else {
       handleServerHandshake(providers, socket, data);

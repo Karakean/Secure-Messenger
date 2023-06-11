@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:secure_messenger/models/user.dart';
 import 'package:secure_messenger/models/common.dart';
+import 'package:secure_messenger/models/user.dart';
 import 'package:secure_messenger/screens/receive_screen.dart';
 import 'package:secure_messenger/screens/send_screen.dart';
 import 'package:secure_messenger/widgets/ecb_switch.dart';
@@ -24,6 +24,7 @@ class _MenuScreenState extends State<MenuScreen> {
   late Future optionsFuture = _getOptions();
   InterfaceAndAddress? selectedValue;
 
+  /// Get a list of the devices interfaces and IP adresses
   Future<List<InterfaceAndAddress>> _getOptions() async {
     final List<InterfaceAndAddress> items = [];
     final interfaces = await NetworkInterface.list();
@@ -41,6 +42,8 @@ class _MenuScreenState extends State<MenuScreen> {
 
   @override
   void initState() {
+    //Set the address back to null because [_getOptions]
+    //returns new objects causing an assert error even though they're the same
     final data = context.read<UserData>();
     data.interface = null;
     data.ipAddr = null;

@@ -1,5 +1,7 @@
 import 'dart:io';
+
 import 'package:path_provider/path_provider.dart';
+
 import 'package:secure_messenger/models/communication/rsa_key_helper.dart';
 import 'package:secure_messenger/models/user.dart';
 
@@ -22,6 +24,7 @@ class InterfaceAndAddress {
   // int get hashCode => super.hashCode;
 }
 
+/// Wrapper around the data passed to communication functions to reduce argument count.
 class Providers {
   final UserData user;
   final UserSession session;

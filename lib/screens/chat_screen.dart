@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import 'package:secure_messenger/models/user.dart';
 import 'package:secure_messenger/screens/menu_screen.dart';
-
-import 'package:secure_messenger/widgets/messages.dart';
 import 'package:secure_messenger/widgets/chatbox.dart';
+import 'package:secure_messenger/widgets/messages.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -20,6 +20,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void didChangeDependencies() {
+    // Leave chat if connection has been lost.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userSession = context.read<UserSession>();
       if (userSession.server == null && userSession.client == null) {

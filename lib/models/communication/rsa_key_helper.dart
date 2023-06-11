@@ -3,12 +3,11 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
-// ignore: implementation_imports
-import 'package:pointycastle/src/platform_check/platform_check.dart';
 import "package:asn1lib/asn1lib.dart";
 import 'package:encrypt/encrypt.dart' as encryptpackage;
 import "package:pointycastle/export.dart";
-//import 'package:pointycastle/asymmetric/api.dart';
+// ignore: implementation_imports
+import 'package:pointycastle/src/platform_check/platform_check.dart';
 
 import 'package:secure_messenger/models/common.dart';
 
@@ -237,7 +236,8 @@ class RsaKeyHelper {
     return iv;
   }
 
-  Future<AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey>?> generateAndSaveKeys(String hashValue, String login) async {
+  Future<AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey>?> generateAndSaveKeys(
+      String hashValue, String login) async {
     final path = await getLocalPath();
 
     final publicDir = Directory('$path/public');
@@ -254,18 +254,14 @@ class RsaKeyHelper {
     if (privateKeyFile.existsSync() || publicKeyFile.existsSync()) {
       return null;
     }
-    
+
     final keyPair = generateRSAkeyPair(exampleSecureRandom());
     saveKeysToFiles(keyPair, hashValue, publicKeyFile, privateKeyFile);
     return keyPair;
   }
 
-  Future<void> saveKeysToFiles(
-      AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey> keyPair, 
-      String hashValue, 
-       publicKeyFile, 
-       File privateKeyFile) async {
-
+  Future<void> saveKeysToFiles(AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey> keyPair,
+      String hashValue, publicKeyFile, File privateKeyFile) async {
     publicKeyFile.writeAsString(encodePublicKeyToPem(keyPair.publicKey));
     var keyFromHash = encryptpackage.Key.fromBase16(
         hashValue); //create key from hexadecimal representation of hash

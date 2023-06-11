@@ -1,16 +1,14 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:secure_messenger/logic/sockets.dart';
 import 'package:secure_messenger/models/common.dart';
-import 'package:secure_messenger/models/communication/communication_data.dart';
 import 'package:secure_messenger/models/communication/rsa_key_helper.dart';
 import 'package:secure_messenger/models/user.dart';
 import 'package:secure_messenger/screens/chat_screen.dart';
 import 'package:secure_messenger/widgets/custom_field.dart';
-
-import '../models/communication/file_data.dart';
 
 class SendScreen extends StatefulWidget {
   const SendScreen({super.key});
@@ -38,10 +36,6 @@ class _SendScreenState extends State<SendScreen> {
 
     final providers = Providers(user: data, session: session, rsa: rsa);
 
-    session.communicationData = CommunicationData();
-    session.fileSendData = FileSendData();
-    session.fileReceiveData =
-        FileReceiveData(); //TODO check if we cant just init entire user session
     final socket = await Socket.connect(destination, 2137);
     session.client = ThingThatTalksToServer(socket, providers);
 
@@ -50,6 +44,7 @@ class _SendScreenState extends State<SendScreen> {
 
   @override
   void didChangeDependencies() {
+    //Open chat after establishing connection
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userSession = context.read<UserSession>();
       if (userSession.sessionKey != null) {
@@ -88,7 +83,6 @@ class _SendScreenState extends State<SendScreen> {
                   key: _formKey,
                   child: CustomField(
                     child: TextFormField(
-                      //initialValue: '192.168.0.3', //TODO: remove later
                       decoration: const InputDecoration(
                         border: InputBorder.none,
                         hintText: "IP address",
