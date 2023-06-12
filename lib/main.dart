@@ -32,6 +32,7 @@ class MyApp extends StatelessWidget {
       ],
       child: MaterialApp(
         title: 'Secure Messenger',
+        debugShowCheckedModeBanner: false,
         theme: ThemeData.light(),
         routes: {
           MenuScreen.routeName: (context) => const MenuScreen(),

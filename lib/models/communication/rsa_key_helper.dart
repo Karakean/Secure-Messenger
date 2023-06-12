@@ -39,14 +39,6 @@ class RsaKeyHelper {
     return AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey>(myPublic, myPrivate);
   }
 
-  SecureRandom exampleSecureRandom() {
-    final secureRandom = SecureRandom('Fortuna')
-      ..seed(
-        KeyParameter(Platform.instance.platformEntropySource().getBytes(32)),
-      );
-    return secureRandom;
-  }
-
   encodePublicKeyToPem(RSAPublicKey publicKey) {
     final algorithmSeq = ASN1Sequence();
     final algorithmAsn1Obj = ASN1Object.fromBytes(
@@ -238,59 +230,59 @@ class RsaKeyHelper {
 
   Future<AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey>?> generateAndSaveKeys(
       String hashValue, String login) async {
-    final path = await getLocalPath();
+    final path = await getLocalPath(); // get the path from the device
 
-    final publicDir = Directory('$path/public');
+    final publicDir = Directory('$path/public'); 
     if (!publicDir.existsSync()) {
       publicDir.createSync();
-    }
+    } // create public directory if it does not exist
     final privateDir = Directory('$path/private');
     if (!privateDir.existsSync()) {
       privateDir.createSync();
-    }
+    } // create private directory if it does not exist
 
-    final publicKeyFile = File('$path/public/$login.pem');
-    final privateKeyFile = File('$path/private/$login.pem');
+    final publicKeyFile = File('$path/public/$login.pem'); // create public key file (login is the name of the key file)
+    final privateKeyFile = File('$path/private/$login.pem'); // create private key file (login is the name of the key file)
     if (privateKeyFile.existsSync() || publicKeyFile.existsSync()) {
       return null;
-    }
+    } // in case that a user with such login already exists, we don't want to override him
 
-    final keyPair = generateRSAkeyPair(exampleSecureRandom());
+    final keyPair = generateRSAkeyPair(SecureRandom());
     saveKeysToFiles(keyPair, hashValue, publicKeyFile, privateKeyFile);
     return keyPair;
   }
 
   Future<void> saveKeysToFiles(AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey> keyPair,
       String hashValue, publicKeyFile, File privateKeyFile) async {
-    publicKeyFile.writeAsString(encodePublicKeyToPem(keyPair.publicKey));
+    publicKeyFile.writeAsString(encodePublicKeyToPem(keyPair.publicKey)); // simply save public key, nothing special
     var keyFromHash = encryptpackage.Key.fromBase16(
         hashValue); //create key from hexadecimal representation of hash
     var encrypter =
         encryptpackage.Encrypter(encryptpackage.AES(keyFromHash, mode: encryptpackage.AESMode.cbc));
-    var iv = getIvFromHash(hashValue);
+    var iv = getIvFromHash(hashValue); // create IV from the password's hash
     var encryptedKey = encrypter.encrypt(encodePrivateKeyToPem(keyPair.privateKey),
         iv: iv); //encrypt private key in PEM representation with AES
-    privateKeyFile.writeAsString(encryptedKey.base16);
+    privateKeyFile.writeAsString(encryptedKey.base16); // save encrypted private key
   }
 
   Future<AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey>?> loadKeysFromFiles(
       String hashValue, String login) async {
-    final path = await getLocalPath();
+    final path = await getLocalPath(); // get the path from the device
 
     final publicKeyFile = File('$path/public/$login.pem');
     final privateKeyFile = File('$path/private/$login.pem');
     if (!await publicKeyFile.exists() || !await privateKeyFile.exists()) {
       return null;
-    }
-    final publicKey = parsePublicKeyFromPem(await publicKeyFile.readAsString());
+    } // in case that such user does not exist
+    final publicKey = parsePublicKeyFromPem(await publicKeyFile.readAsString()); // simply load public key
 
     String encryptedPrivateKey = await privateKeyFile.readAsString();
     var keyFromHash = encryptpackage.Key.fromBase16(hashValue);
     var encrypter =
         encryptpackage.Encrypter(encryptpackage.AES(keyFromHash, mode: encryptpackage.AESMode.cbc));
     var iv = getIvFromHash(hashValue);
-    String decryptedKey = encrypter.decrypt16(encryptedPrivateKey, iv: iv);
-    dynamic privateKey = parsePrivateKeyFromPem(decryptedKey);
+    String decryptedKey = encrypter.decrypt16(encryptedPrivateKey, iv: iv); // decrypt private key
+    dynamic privateKey = parsePrivateKeyFromPem(decryptedKey); // load decrypted private key
 
     return AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey>(publicKey, privateKey);
   }

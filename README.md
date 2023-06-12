@@ -2,7 +2,7 @@
 
 ## What is it?
 
-Secure messenger is a multi-platform communicator written with Flutter framework in Dart language. Its purpose is to ensure secure communication, including sending and receiving text messages and files, over unnecessarily secure network.
+Secure Messenger is a multi-platform communicator written with Flutter framework in Dart language. Its purpose is to ensure secure communication, including sending and receiving text messages and files, over unnecessarily secure network.
 
 ## How does it work?
 
