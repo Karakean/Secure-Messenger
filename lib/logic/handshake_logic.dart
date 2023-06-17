@@ -23,39 +23,19 @@ void handleServerHandshake(
 
   switch (communicationData.currentState) {
     case CommunicationStates.initial:
-      _handleSynExpectation(
-        socket,
-        decodedData,
-        communicationData,
-      );
+      _handleSynExpectation(socket, decodedData, communicationData);
       break;
 
     case CommunicationStates.ackExpectation:
-      _handleAckExpectation(
-        socket,
-        decodedData,
-        userData,
-        communicationData,
-        rsa,
-      );
+      _handleAckExpectation(socket, decodedData, userData, communicationData, rsa);
       break;
 
     case CommunicationStates.packageExpectation:
-      _handlePackageExpectation(
-        socket,
-        decodedData,
-        userData,
-        session,
-        communicationData,
-        rsa,
-      );
+      _handlePackageExpectation(socket, decodedData, userData, session, communicationData, rsa);
       break;
 
     case CommunicationStates.doneAckExpectation:
-      _handleDoneAckExpectation(
-        decodedData,
-        communicationData,
-      );
+      _handleDoneAckExpectation(decodedData, communicationData);
       break;
 
     default:

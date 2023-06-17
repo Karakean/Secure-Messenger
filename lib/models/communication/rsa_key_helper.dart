@@ -232,7 +232,7 @@ class RsaKeyHelper {
       String hashValue, String login) async {
     final path = await getLocalPath(); // get the path from the device
 
-    final publicDir = Directory('$path/public'); 
+    final publicDir = Directory('$path/public');
     if (!publicDir.existsSync()) {
       publicDir.createSync();
     } // create public directory if it does not exist
@@ -241,20 +241,32 @@ class RsaKeyHelper {
       privateDir.createSync();
     } // create private directory if it does not exist
 
-    final publicKeyFile = File('$path/public/$login.pem'); // create public key file (login is the name of the key file)
-    final privateKeyFile = File('$path/private/$login.pem'); // create private key file (login is the name of the key file)
+    final publicKeyFile = File(
+        '$path/public/$login.pem'); // create public key file (login is the name of the key file)
+    final privateKeyFile = File(
+        '$path/private/$login.pem'); // create private key file (login is the name of the key file)
     if (privateKeyFile.existsSync() || publicKeyFile.existsSync()) {
       return null;
     } // in case that a user with such login already exists, we don't want to override him
 
-    final keyPair = generateRSAkeyPair(SecureRandom());
+    final keyPair = generateRSAkeyPair(
+      SecureRandom('Fortuna')
+        ..seed(
+          KeyParameter(Platform.instance.platformEntropySource().getBytes(32)),
+        ),
+    );
     saveKeysToFiles(keyPair, hashValue, publicKeyFile, privateKeyFile);
     return keyPair;
   }
 
-  Future<void> saveKeysToFiles(AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey> keyPair,
-      String hashValue, publicKeyFile, File privateKeyFile) async {
-    publicKeyFile.writeAsString(encodePublicKeyToPem(keyPair.publicKey)); // simply save public key, nothing special
+  Future<void> saveKeysToFiles(
+    AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey> keyPair,
+    String hashValue,
+    publicKeyFile,
+    File privateKeyFile,
+  ) async {
+    publicKeyFile.writeAsString(
+        encodePublicKeyToPem(keyPair.publicKey)); // simply save public key, nothing special
     var keyFromHash = encryptpackage.Key.fromBase16(
         hashValue); //create key from hexadecimal representation of hash
     var encrypter =
@@ -266,7 +278,9 @@ class RsaKeyHelper {
   }
 
   Future<AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey>?> loadKeysFromFiles(
-      String hashValue, String login) async {
+    String hashValue,
+    String login,
+  ) async {
     final path = await getLocalPath(); // get the path from the device
 
     final publicKeyFile = File('$path/public/$login.pem');
@@ -274,7 +288,8 @@ class RsaKeyHelper {
     if (!await publicKeyFile.exists() || !await privateKeyFile.exists()) {
       return null;
     } // in case that such user does not exist
-    final publicKey = parsePublicKeyFromPem(await publicKeyFile.readAsString()); // simply load public key
+    final publicKey =
+        parsePublicKeyFromPem(await publicKeyFile.readAsString()); // simply load public key
 
     String encryptedPrivateKey = await privateKeyFile.readAsString();
     var keyFromHash = encryptpackage.Key.fromBase16(hashValue);
